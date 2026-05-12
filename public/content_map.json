@@ -355,6 +355,20 @@
         {
             "key": "toast.ugui/pill",
             "path": "assets/placeholders/toast.ugui/pill.png"
+        },
+        {
+            "key": "test_raw_01",
+            "path": "assets/placeholders/chips/chip_01.png"
+        },
+        {
+            "key": "test_mat_01",
+            "path": "assets/placeholders/chips/chip_02.png"
+        }
+    ],
+    "clips": [
+        {
+            "key": "test_clip_01",
+            "path": "assets/audio/test_clip_01.wav"
         }
     ],
     "layouts": [
