@@ -139,3 +139,65 @@ Agent screenshots in Solitaire repo: `v3-t6.png`, `v3-t7-detail-confirm.png`,
   Phase 4 made all UI runtime-injected, so V6/V9 real-flow validation needs a
   human with a fresh Asset/Art/ PNG. The agent verified the v3 logic with
   synthetic File objects + synthetic `last-applied.json` writes.
+
+---
+
+## v3 UX follow-up (post-friction-log)
+
+After the initial v3 ship, a Persona × JTBD UX spike (see `Solitaire/docs/ux/friction-log-v3-2026-05-12.md`)
+identified that the artist target user would abandon in 3 steps because:
+- 0 replaceable assets in current project (Phase 4 fully runtime-injected) → tool looks broken
+- Unity terminology not familiar to non-Unity-savvy artists
+- Apply flow required switching to Unity Editor
+
+3 follow-up commits ship the fixes:
+
+### D-WebAdminV3-12 — empty-state + 术语脱敏 + sidebar/list 标 (P0-1 + P0-2 + P1-1 + P1-2)
+
+- **Empty-state banner**: when 0 replaceable globally, layout main pane shows purple guidance card explaining Phase 4 runtime injection + how to add static assets
+- **Sidebar replaceable badges**: each source shows green `✓N` badge for replaceable count, 🔒 lock icon when zero
+- **Auto-pick-replaceable**: page loads selecting first source with `replaceable > 0`
+- **List row indicator**: `.list-row-status-repl` (✓ emerald) / `.list-row-status-lock` (🔒 dim) per row, hover tooltip explains
+- **Detail terminology**: friendly title (last GameObject segment) + breadcrumb subtitle + `friendlyAssetLabel()` (e.g. "Unity 自带占位图（不可直接替换）" instead of `Resources/unity_builtin_extra:UISprite`)
+- **Tech disclosures**: GUID / Unity asset path / Canvas render mode hidden under `<details class="detail-tech">` collapsibles
+
+content-poc commit: `440d058`
+
+### D-WebAdminV3-13 — Auto-Apply Watch Mode (P0-3)
+
+Unity background watcher that polls `admin/data/pending-changes.json` every 2s and auto-runs `ContentApplyWebChangesMenu.ApplyChanges` silently (no dialog) when new pending detected.
+
+- New menu: `Tools/Solitaire/Content/Auto-Apply Web Changes (Watch Mode)` (toggle, checkmark)
+- `[InitializeOnLoad]` restores subscription after domain reload via `EditorPrefs Solitaire.WebAdminV2.WatchMode`
+- 2s throttle on `EditorApplication.update` to avoid spinning
+- Writes `admin/data/watch-state.json` so frontend can show "🟢 自动应用" / "⚪ 手动应用" indicator
+- New backend endpoint: `/api/v2/watch-state` reads watch-state.json
+- Frontend `#v3-watch-indicator` in topbar reflects state
+
+End-to-end verified: synthetic pending-changes.json → 3s later last-applied.json updated + chip_v3t13_test.png materialized.
+
+Solitaire commit: `a682838` | content-poc commit: `530f3be`
+
+### D-WebAdminV3-14 — legend + 人话 confirm + dirty 持久化 (P1-3 + P1-4 + P1-5)
+
+- **Layout legend**: pane header followed by `.v3-layout-legend` strip — 3 swatches (✓ 可替换 / 🔒 Unity 自带 / ○ 未指定) + "悬停查看详情" hint
+- **Element hover tooltip**: every `.el` gets `title="<friendlyName> · <status>"`
+- **Humanized confirm card**: 「替换 **ChapterChip_3** 的图片？」 header + side-by-side `当前 vs 新` thumbnails (new thumb has emerald border + glow) + 文件名 secondary + 技术细节 collapsed
+- **Dirty localStorage persistence**: `state.js` exports `persistDirty/loadPersistedDirty/clearPersistedDirty` — saves lightweight descriptors (id/targetAssetPath/byteSize/filename), NOT byte payloads (too large + browser security)
+- **Restore banner on reload**: if persisted dirty exists, bottom-center amber banner offers Discard (works) + Resend (disabled with tooltip explaining browser security)
+- **Auto-clear after Unity Apply**: poller cleanup path calls `clearPersistedDirty()`
+
+content-poc commit: `7cfd369`
+
+---
+
+## Updated Acceptance after follow-up
+
+- [x] Artist persona no longer abandons at "0 replaceable" — guidance banner explains the state
+- [x] Unity terminology (Resources/unity_builtin_extra, GameObject path, GUID, Canvas) all hidden by default or replaced with friendly Chinese
+- [x] Optional auto-apply: artist toggles Unity menu once, then v3 changes auto-apply within 3s without switching apps
+- [x] Dirty state survives accidental page reload (with honest "can't auto-resend bytes" message)
+- [x] Legend + hover tooltips make the colored boxes self-explanatory
+- [x] Confirm card asks human-readable question with visual before/after
+
+Remaining ⏳: V6 real file picker (only exercise-able with real `Assets/Art/*.png` in project), V9 full Unity Apply with multiple changes (covered by T13 e2e but real artist flow needs human validation).
