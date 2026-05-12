@@ -371,6 +371,18 @@
             "path": "assets/audio/test_clip_01.wav"
         }
     ],
+    "fonts": [
+        {
+            "key": "test_font_01",
+            "resourcePath": "Fonts & Materials/LiberationSans SDF"
+        }
+    ],
+    "animations": [
+        {
+            "key": "test_anim_01",
+            "resourcePath": "Animations/test_swap_idle"
+        }
+    ],
     "layouts": [
         {
             "key": "homemap_chipstrip",
