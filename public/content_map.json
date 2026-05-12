@@ -1,395 +1,395 @@
 {
-    "sprites": [
-        {
-            "key": "chip_01",
-            "path": "assets/chips/chip_01.png"
-        },
-        {
-            "key": "chip_02",
-            "path": "assets/chips/chip_02.png"
-        },
-        {
-            "key": "chip_03",
-            "path": "assets/chips/chip_03.png"
-        },
-        {
-            "key": "chip_04",
-            "path": "assets/chips/chip_04.png"
-        },
-        {
-            "key": "chip_05",
-            "path": "assets/chips/chip_05.png"
-        },
-        {
-            "key": "homemap.ugui/settingsbutton",
-            "path": "assets/placeholders/homemap.ugui/settingsbutton.png"
-        },
-        {
-            "key": "homemap.ugui/chaptertitlebadge",
-            "path": "assets/placeholders/homemap.ugui/chaptertitlebadge.png"
-        },
-        {
-            "key": "homemap.ugui/coinpill",
-            "path": "assets/placeholders/homemap.ugui/coinpill.png"
-        },
-        {
-            "key": "chips/chip_01",
-            "path": "assets/placeholders/chips/chip_01.png"
-        },
-        {
-            "key": "chips/chip_02",
-            "path": "assets/placeholders/chips/chip_02.png"
-        },
-        {
-            "key": "chips/chip_03",
-            "path": "assets/placeholders/chips/chip_03.png"
-        },
-        {
-            "key": "chips/chip_04",
-            "path": "assets/placeholders/chips/chip_04.png"
-        },
-        {
-            "key": "chips/chip_05",
-            "path": "assets/placeholders/chips/chip_05.png"
-        },
-        {
-            "key": "homemap.ugui/subscenestage",
-            "path": "assets/placeholders/homemap.ugui/subscenestage.png"
-        },
-        {
-            "key": "homemap.ugui/dashedpath",
-            "path": "assets/placeholders/homemap.ugui/dashedpath.png"
-        },
-        {
-            "key": "homemap.ugui/progressbadge",
-            "path": "assets/placeholders/homemap.ugui/progressbadge.png"
-        },
-        {
-            "key": "homemap.ugui/hourlybonusbutton",
-            "path": "assets/placeholders/homemap.ugui/hourlybonusbutton.png"
-        },
-        {
-            "key": "homemap.ugui/primaryactionbutton",
-            "path": "assets/placeholders/homemap.ugui/primaryactionbutton.png"
-        },
-        {
-            "key": "gameplay.ugui/settingsbutton",
-            "path": "assets/placeholders/gameplay.ugui/settingsbutton.png"
-        },
-        {
-            "key": "gameplay.ugui/levelbadge",
-            "path": "assets/placeholders/gameplay.ugui/levelbadge.png"
-        },
-        {
-            "key": "gameplay.ugui/coinpill",
-            "path": "assets/placeholders/gameplay.ugui/coinpill.png"
-        },
-        {
-            "key": "gameplay.ugui/wildpill",
-            "path": "assets/placeholders/gameplay.ugui/wildpill.png"
-        },
-        {
-            "key": "gameplay.ugui/countbadge",
-            "path": "assets/placeholders/gameplay.ugui/countbadge.png"
-        },
-        {
-            "key": "gameplay.ugui/streakbanner",
-            "path": "assets/placeholders/gameplay.ugui/streakbanner.png"
-        },
-        {
-            "key": "gameplay.ugui/dot1",
-            "path": "assets/placeholders/gameplay.ugui/dot1.png"
-        },
-        {
-            "key": "gameplay.ugui/dot2",
-            "path": "assets/placeholders/gameplay.ugui/dot2.png"
-        },
-        {
-            "key": "gameplay.ugui/dot3",
-            "path": "assets/placeholders/gameplay.ugui/dot3.png"
-        },
-        {
-            "key": "gameplay.ugui/dot4",
-            "path": "assets/placeholders/gameplay.ugui/dot4.png"
-        },
-        {
-            "key": "gameplay.ugui/dot5",
-            "path": "assets/placeholders/gameplay.ugui/dot5.png"
-        },
-        {
-            "key": "gameplay.ugui/placeholder_bg",
-            "path": "assets/placeholders/gameplay.ugui/placeholder_bg.png"
-        },
-        {
-            "key": "gameplay.ugui/shadow3",
-            "path": "assets/placeholders/gameplay.ugui/shadow3.png"
-        },
-        {
-            "key": "gameplay.ugui/shadow2",
-            "path": "assets/placeholders/gameplay.ugui/shadow2.png"
-        },
-        {
-            "key": "gameplay.ugui/shadow1",
-            "path": "assets/placeholders/gameplay.ugui/shadow1.png"
-        },
-        {
-            "key": "gameplay.ugui/button",
-            "path": "assets/placeholders/gameplay.ugui/button.png"
-        },
-        {
-            "key": "gameplay.ugui/discardslot",
-            "path": "assets/placeholders/gameplay.ugui/discardslot.png"
-        },
-        {
-            "key": "gameplay.ugui/undobutton",
-            "path": "assets/placeholders/gameplay.ugui/undobutton.png"
-        },
-        {
-            "key": "gameplay.ugui/wildbutton",
-            "path": "assets/placeholders/gameplay.ugui/wildbutton.png"
-        },
-        {
-            "key": "gameplay.ugui/hintbutton",
-            "path": "assets/placeholders/gameplay.ugui/hintbutton.png"
-        },
-        {
-            "key": "gameplay.ugui/endbutton",
-            "path": "assets/placeholders/gameplay.ugui/endbutton.png"
-        },
-        {
-            "key": "coinpill/coinpill",
-            "path": "assets/placeholders/coinpill/coinpill.png"
-        },
-        {
-            "key": "discardslot/discardslot",
-            "path": "assets/placeholders/discardslot/discardslot.png"
-        },
-        {
-            "key": "drawpile/shadow3",
-            "path": "assets/placeholders/drawpile/shadow3.png"
-        },
-        {
-            "key": "drawpile/shadow2",
-            "path": "assets/placeholders/drawpile/shadow2.png"
-        },
-        {
-            "key": "drawpile/shadow1",
-            "path": "assets/placeholders/drawpile/shadow1.png"
-        },
-        {
-            "key": "drawpile/button",
-            "path": "assets/placeholders/drawpile/button.png"
-        },
-        {
-            "key": "levelbadge/levelbadge",
-            "path": "assets/placeholders/levelbadge/levelbadge.png"
-        },
-        {
-            "key": "primaryactionbutton/primaryactionbutton",
-            "path": "assets/placeholders/primaryactionbutton/primaryactionbutton.png"
-        },
-        {
-            "key": "roundiconbutton/roundiconbutton",
-            "path": "assets/placeholders/roundiconbutton/roundiconbutton.png"
-        },
-        {
-            "key": "settingsbutton/settingsbutton",
-            "path": "assets/placeholders/settingsbutton/settingsbutton.png"
-        },
-        {
-            "key": "streakbanner/streakbanner",
-            "path": "assets/placeholders/streakbanner/streakbanner.png"
-        },
-        {
-            "key": "streakbanner/dot1",
-            "path": "assets/placeholders/streakbanner/dot1.png"
-        },
-        {
-            "key": "streakbanner/dot2",
-            "path": "assets/placeholders/streakbanner/dot2.png"
-        },
-        {
-            "key": "streakbanner/dot3",
-            "path": "assets/placeholders/streakbanner/dot3.png"
-        },
-        {
-            "key": "streakbanner/dot4",
-            "path": "assets/placeholders/streakbanner/dot4.png"
-        },
-        {
-            "key": "streakbanner/dot5",
-            "path": "assets/placeholders/streakbanner/dot5.png"
-        },
-        {
-            "key": "wildpill/wildpill",
-            "path": "assets/placeholders/wildpill/wildpill.png"
-        },
-        {
-            "key": "wildpill/countbadge",
-            "path": "assets/placeholders/wildpill/countbadge.png"
-        },
-        {
-            "key": "chaptertitlebadge/chaptertitlebadge",
-            "path": "assets/placeholders/chaptertitlebadge/chaptertitlebadge.png"
-        },
-        {
-            "key": "hourlybonusbutton/hourlybonusbutton",
-            "path": "assets/placeholders/hourlybonusbutton/hourlybonusbutton.png"
-        },
-        {
-            "key": "progressbadge/progressbadge",
-            "path": "assets/placeholders/progressbadge/progressbadge.png"
-        },
-        {
-            "key": "subscenenode/subscenenode",
-            "path": "assets/placeholders/subscenenode/subscenenode.png"
-        },
-        {
-            "key": "subscenestage/subscenestage",
-            "path": "assets/placeholders/subscenestage/subscenestage.png"
-        },
-        {
-            "key": "subscenestage/dashedpath",
-            "path": "assets/placeholders/subscenestage/dashedpath.png"
-        },
-        {
-            "key": "chapterintrooverlay.ugui/card",
-            "path": "assets/placeholders/chapterintrooverlay.ugui/card.png"
-        },
-        {
-            "key": "chapterintrooverlay.ugui/enterbutton",
-            "path": "assets/placeholders/chapterintrooverlay.ugui/enterbutton.png"
-        },
-        {
-            "key": "cinematicoverlay.ugui/overlay",
-            "path": "assets/placeholders/cinematicoverlay.ugui/overlay.png"
-        },
-        {
-            "key": "cinematicoverlay.ugui/card",
-            "path": "assets/placeholders/cinematicoverlay.ugui/card.png"
-        },
-        {
-            "key": "gameovermodal.ugui/overlay",
-            "path": "assets/placeholders/gameovermodal.ugui/overlay.png"
-        },
-        {
-            "key": "gameovermodal.ugui/card",
-            "path": "assets/placeholders/gameovermodal.ugui/card.png"
-        },
-        {
-            "key": "gameovermodal.ugui/retrybutton",
-            "path": "assets/placeholders/gameovermodal.ugui/retrybutton.png"
-        },
-        {
-            "key": "levelcompletemodal.ugui/overlay",
-            "path": "assets/placeholders/levelcompletemodal.ugui/overlay.png"
-        },
-        {
-            "key": "levelcompletemodal.ugui/card",
-            "path": "assets/placeholders/levelcompletemodal.ugui/card.png"
-        },
-        {
-            "key": "levelcompletemodal.ugui/coinchip",
-            "path": "assets/placeholders/levelcompletemodal.ugui/coinchip.png"
-        },
-        {
-            "key": "levelcompletemodal.ugui/starchip",
-            "path": "assets/placeholders/levelcompletemodal.ugui/starchip.png"
-        },
-        {
-            "key": "levelcompletemodal.ugui/wildchip",
-            "path": "assets/placeholders/levelcompletemodal.ugui/wildchip.png"
-        },
-        {
-            "key": "levelcompletemodal.ugui/nextbutton",
-            "path": "assets/placeholders/levelcompletemodal.ugui/nextbutton.png"
-        },
-        {
-            "key": "levelintromodal.ugui/overlay",
-            "path": "assets/placeholders/levelintromodal.ugui/overlay.png"
-        },
-        {
-            "key": "levelintromodal.ugui/card",
-            "path": "assets/placeholders/levelintromodal.ugui/card.png"
-        },
-        {
-            "key": "levelintromodal.ugui/startbutton",
-            "path": "assets/placeholders/levelintromodal.ugui/startbutton.png"
-        },
-        {
-            "key": "memorylanemodal.ugui/overlay",
-            "path": "assets/placeholders/memorylanemodal.ugui/overlay.png"
-        },
-        {
-            "key": "memorylanemodal.ugui/card",
-            "path": "assets/placeholders/memorylanemodal.ugui/card.png"
-        },
-        {
-            "key": "memorylanemodal.ugui/continuebutton",
-            "path": "assets/placeholders/memorylanemodal.ugui/continuebutton.png"
-        },
-        {
-            "key": "modalshell/overlay",
-            "path": "assets/placeholders/modalshell/overlay.png"
-        },
-        {
-            "key": "modalshell/card",
-            "path": "assets/placeholders/modalshell/card.png"
-        },
-        {
-            "key": "rewardchip/rewardchip",
-            "path": "assets/placeholders/rewardchip/rewardchip.png"
-        },
-        {
-            "key": "settingsoverlay.ugui/overlay",
-            "path": "assets/placeholders/settingsoverlay.ugui/overlay.png"
-        },
-        {
-            "key": "settingsoverlay.ugui/card",
-            "path": "assets/placeholders/settingsoverlay.ugui/card.png"
-        },
-        {
-            "key": "settingsoverlay.ugui/resumebutton",
-            "path": "assets/placeholders/settingsoverlay.ugui/resumebutton.png"
-        },
-        {
-            "key": "toast.ugui/pill",
-            "path": "assets/placeholders/toast.ugui/pill.png"
-        },
-        {
-            "key": "test_raw_01",
-            "path": "assets/placeholders/chips/chip_01.png"
-        },
-        {
-            "key": "test_mat_01",
-            "path": "assets/placeholders/chips/chip_02.png"
-        }
-    ],
-    "clips": [
-        {
-            "key": "test_clip_01",
-            "path": "assets/audio/test_clip_01.wav"
-        }
-    ],
-    "fonts": [
-        {
-            "key": "test_font_01",
-            "resourcePath": "Fonts & Materials/LiberationSans SDF"
-        }
-    ],
-    "animations": [
-        {
-            "key": "test_anim_01",
-            "resourcePath": "Animations/test_swap_idle"
-        }
-    ],
-    "layouts": [
-        {
-            "key": "homemap_chipstrip",
-            "spacing": 120,
-            "padding_left": 16,
-            "padding_right": 16,
-            "child_size": 96
-        }
-    ]
+  "sprites": [
+    {
+      "key": "chip_01",
+      "path": "assets/chips/chip_01.png"
+    },
+    {
+      "key": "chip_02",
+      "path": "assets/chips/chip_02.png"
+    },
+    {
+      "key": "chip_03",
+      "path": "assets/chips/chip_03.png"
+    },
+    {
+      "key": "chip_04",
+      "path": "assets/chips/chip_04.png"
+    },
+    {
+      "key": "chip_05",
+      "path": "assets/chips/chip_05.png"
+    },
+    {
+      "key": "homemap.ugui/settingsbutton",
+      "path": "assets/placeholders/homemap.ugui/settingsbutton.png"
+    },
+    {
+      "key": "homemap.ugui/chaptertitlebadge",
+      "path": "assets/placeholders/homemap.ugui/chaptertitlebadge.png"
+    },
+    {
+      "key": "homemap.ugui/coinpill",
+      "path": "assets/placeholders/homemap.ugui/coinpill.png"
+    },
+    {
+      "key": "chips/chip_01",
+      "path": "assets/placeholders/chips/chip_01.png"
+    },
+    {
+      "key": "chips/chip_02",
+      "path": "assets/placeholders/chips/chip_02.png"
+    },
+    {
+      "key": "chips/chip_03",
+      "path": "assets/placeholders/chips/chip_03.png"
+    },
+    {
+      "key": "chips/chip_04",
+      "path": "assets/placeholders/chips/chip_04.png"
+    },
+    {
+      "key": "chips/chip_05",
+      "path": "assets/placeholders/chips/chip_05.png"
+    },
+    {
+      "key": "homemap.ugui/subscenestage",
+      "path": "assets/placeholders/homemap.ugui/subscenestage.png"
+    },
+    {
+      "key": "homemap.ugui/dashedpath",
+      "path": "assets/placeholders/homemap.ugui/dashedpath.png"
+    },
+    {
+      "key": "homemap.ugui/progressbadge",
+      "path": "assets/placeholders/homemap.ugui/progressbadge.png"
+    },
+    {
+      "key": "homemap.ugui/hourlybonusbutton",
+      "path": "assets/placeholders/homemap.ugui/hourlybonusbutton.png"
+    },
+    {
+      "key": "homemap.ugui/primaryactionbutton",
+      "path": "assets/placeholders/homemap.ugui/primaryactionbutton.png"
+    },
+    {
+      "key": "gameplay.ugui/settingsbutton",
+      "path": "assets/placeholders/gameplay.ugui/settingsbutton.png"
+    },
+    {
+      "key": "gameplay.ugui/levelbadge",
+      "path": "assets/placeholders/gameplay.ugui/levelbadge.png"
+    },
+    {
+      "key": "gameplay.ugui/coinpill",
+      "path": "assets/placeholders/gameplay.ugui/coinpill.png"
+    },
+    {
+      "key": "gameplay.ugui/wildpill",
+      "path": "assets/placeholders/gameplay.ugui/wildpill.png"
+    },
+    {
+      "key": "gameplay.ugui/countbadge",
+      "path": "assets/placeholders/gameplay.ugui/countbadge.png"
+    },
+    {
+      "key": "gameplay.ugui/streakbanner",
+      "path": "assets/placeholders/gameplay.ugui/streakbanner.png"
+    },
+    {
+      "key": "gameplay.ugui/dot1",
+      "path": "assets/placeholders/gameplay.ugui/dot1.png"
+    },
+    {
+      "key": "gameplay.ugui/dot2",
+      "path": "assets/placeholders/gameplay.ugui/dot2.png"
+    },
+    {
+      "key": "gameplay.ugui/dot3",
+      "path": "assets/placeholders/gameplay.ugui/dot3.png"
+    },
+    {
+      "key": "gameplay.ugui/dot4",
+      "path": "assets/placeholders/gameplay.ugui/dot4.png"
+    },
+    {
+      "key": "gameplay.ugui/dot5",
+      "path": "assets/placeholders/gameplay.ugui/dot5.png"
+    },
+    {
+      "key": "gameplay.ugui/placeholder_bg",
+      "path": "assets/placeholders/gameplay.ugui/placeholder_bg.png"
+    },
+    {
+      "key": "gameplay.ugui/shadow3",
+      "path": "assets/placeholders/gameplay.ugui/shadow3.png"
+    },
+    {
+      "key": "gameplay.ugui/shadow2",
+      "path": "assets/placeholders/gameplay.ugui/shadow2.png"
+    },
+    {
+      "key": "gameplay.ugui/shadow1",
+      "path": "assets/placeholders/gameplay.ugui/shadow1.png"
+    },
+    {
+      "key": "gameplay.ugui/button",
+      "path": "assets/placeholders/gameplay.ugui/button.png"
+    },
+    {
+      "key": "gameplay.ugui/discardslot",
+      "path": "assets/placeholders/gameplay.ugui/discardslot.png"
+    },
+    {
+      "key": "gameplay.ugui/undobutton",
+      "path": "assets/placeholders/gameplay.ugui/undobutton.png"
+    },
+    {
+      "key": "gameplay.ugui/wildbutton",
+      "path": "assets/placeholders/gameplay.ugui/wildbutton.png"
+    },
+    {
+      "key": "gameplay.ugui/hintbutton",
+      "path": "assets/placeholders/gameplay.ugui/hintbutton.png"
+    },
+    {
+      "key": "gameplay.ugui/endbutton",
+      "path": "assets/placeholders/gameplay.ugui/endbutton.png"
+    },
+    {
+      "key": "coinpill/coinpill",
+      "path": "assets/placeholders/coinpill/coinpill.png"
+    },
+    {
+      "key": "discardslot/discardslot",
+      "path": "assets/placeholders/discardslot/discardslot.png"
+    },
+    {
+      "key": "drawpile/shadow3",
+      "path": "assets/placeholders/drawpile/shadow3.png"
+    },
+    {
+      "key": "drawpile/shadow2",
+      "path": "assets/placeholders/drawpile/shadow2.png"
+    },
+    {
+      "key": "drawpile/shadow1",
+      "path": "assets/placeholders/drawpile/shadow1.png"
+    },
+    {
+      "key": "drawpile/button",
+      "path": "assets/placeholders/drawpile/button.png"
+    },
+    {
+      "key": "levelbadge/levelbadge",
+      "path": "assets/placeholders/levelbadge/levelbadge.png"
+    },
+    {
+      "key": "primaryactionbutton/primaryactionbutton",
+      "path": "assets/placeholders/primaryactionbutton/primaryactionbutton.png"
+    },
+    {
+      "key": "roundiconbutton/roundiconbutton",
+      "path": "assets/placeholders/roundiconbutton/roundiconbutton.png"
+    },
+    {
+      "key": "settingsbutton/settingsbutton",
+      "path": "assets/placeholders/settingsbutton/settingsbutton.png"
+    },
+    {
+      "key": "streakbanner/streakbanner",
+      "path": "assets/placeholders/streakbanner/streakbanner.png"
+    },
+    {
+      "key": "streakbanner/dot1",
+      "path": "assets/placeholders/streakbanner/dot1.png"
+    },
+    {
+      "key": "streakbanner/dot2",
+      "path": "assets/placeholders/streakbanner/dot2.png"
+    },
+    {
+      "key": "streakbanner/dot3",
+      "path": "assets/placeholders/streakbanner/dot3.png"
+    },
+    {
+      "key": "streakbanner/dot4",
+      "path": "assets/placeholders/streakbanner/dot4.png"
+    },
+    {
+      "key": "streakbanner/dot5",
+      "path": "assets/placeholders/streakbanner/dot5.png"
+    },
+    {
+      "key": "wildpill/wildpill",
+      "path": "assets/placeholders/wildpill/wildpill.png"
+    },
+    {
+      "key": "wildpill/countbadge",
+      "path": "assets/placeholders/wildpill/countbadge.png"
+    },
+    {
+      "key": "chaptertitlebadge/chaptertitlebadge",
+      "path": "assets/placeholders/chaptertitlebadge/chaptertitlebadge.png"
+    },
+    {
+      "key": "hourlybonusbutton/hourlybonusbutton",
+      "path": "assets/placeholders/hourlybonusbutton/hourlybonusbutton.png"
+    },
+    {
+      "key": "progressbadge/progressbadge",
+      "path": "assets/placeholders/progressbadge/progressbadge.png"
+    },
+    {
+      "key": "subscenenode/subscenenode",
+      "path": "assets/placeholders/subscenenode/subscenenode.png"
+    },
+    {
+      "key": "subscenestage/subscenestage",
+      "path": "assets/placeholders/subscenestage/subscenestage.png"
+    },
+    {
+      "key": "subscenestage/dashedpath",
+      "path": "assets/placeholders/subscenestage/dashedpath.png"
+    },
+    {
+      "key": "chapterintrooverlay.ugui/card",
+      "path": "assets/placeholders/chapterintrooverlay.ugui/card.png"
+    },
+    {
+      "key": "chapterintrooverlay.ugui/enterbutton",
+      "path": "assets/placeholders/chapterintrooverlay.ugui/enterbutton.png"
+    },
+    {
+      "key": "cinematicoverlay.ugui/overlay",
+      "path": "assets/placeholders/cinematicoverlay.ugui/overlay.png"
+    },
+    {
+      "key": "cinematicoverlay.ugui/card",
+      "path": "assets/placeholders/cinematicoverlay.ugui/card.png"
+    },
+    {
+      "key": "gameovermodal.ugui/overlay",
+      "path": "assets/placeholders/gameovermodal.ugui/overlay.png"
+    },
+    {
+      "key": "gameovermodal.ugui/card",
+      "path": "assets/placeholders/gameovermodal.ugui/card.png"
+    },
+    {
+      "key": "gameovermodal.ugui/retrybutton",
+      "path": "assets/placeholders/gameovermodal.ugui/retrybutton.png"
+    },
+    {
+      "key": "levelcompletemodal.ugui/overlay",
+      "path": "assets/placeholders/levelcompletemodal.ugui/overlay.png"
+    },
+    {
+      "key": "levelcompletemodal.ugui/card",
+      "path": "assets/placeholders/levelcompletemodal.ugui/card.png"
+    },
+    {
+      "key": "levelcompletemodal.ugui/coinchip",
+      "path": "assets/placeholders/levelcompletemodal.ugui/coinchip.png"
+    },
+    {
+      "key": "levelcompletemodal.ugui/starchip",
+      "path": "assets/placeholders/levelcompletemodal.ugui/starchip.png"
+    },
+    {
+      "key": "levelcompletemodal.ugui/wildchip",
+      "path": "assets/placeholders/levelcompletemodal.ugui/wildchip.png"
+    },
+    {
+      "key": "levelcompletemodal.ugui/nextbutton",
+      "path": "assets/placeholders/levelcompletemodal.ugui/nextbutton.png"
+    },
+    {
+      "key": "levelintromodal.ugui/overlay",
+      "path": "assets/placeholders/levelintromodal.ugui/overlay.png"
+    },
+    {
+      "key": "levelintromodal.ugui/card",
+      "path": "assets/placeholders/levelintromodal.ugui/card.png"
+    },
+    {
+      "key": "levelintromodal.ugui/startbutton",
+      "path": "assets/placeholders/levelintromodal.ugui/startbutton.png"
+    },
+    {
+      "key": "memorylanemodal.ugui/overlay",
+      "path": "assets/placeholders/memorylanemodal.ugui/overlay.png"
+    },
+    {
+      "key": "memorylanemodal.ugui/card",
+      "path": "assets/placeholders/memorylanemodal.ugui/card.png"
+    },
+    {
+      "key": "memorylanemodal.ugui/continuebutton",
+      "path": "assets/placeholders/memorylanemodal.ugui/continuebutton.png"
+    },
+    {
+      "key": "modalshell/overlay",
+      "path": "assets/placeholders/modalshell/overlay.png"
+    },
+    {
+      "key": "modalshell/card",
+      "path": "assets/placeholders/modalshell/card.png"
+    },
+    {
+      "key": "rewardchip/rewardchip",
+      "path": "assets/placeholders/rewardchip/rewardchip.png"
+    },
+    {
+      "key": "settingsoverlay.ugui/overlay",
+      "path": "assets/placeholders/settingsoverlay.ugui/overlay.png"
+    },
+    {
+      "key": "settingsoverlay.ugui/card",
+      "path": "assets/placeholders/settingsoverlay.ugui/card.png"
+    },
+    {
+      "key": "settingsoverlay.ugui/resumebutton",
+      "path": "assets/placeholders/settingsoverlay.ugui/resumebutton.png"
+    },
+    {
+      "key": "toast.ugui/pill",
+      "path": "assets/placeholders/toast.ugui/pill.png"
+    },
+    {
+      "key": "test_raw_01",
+      "path": "assets/placeholders/chips/chip_01.png"
+    },
+    {
+      "key": "test_mat_01",
+      "path": "assets/placeholders/chips/chip_02.png"
+    }
+  ],
+  "clips": [
+    {
+      "key": "test_clip_01",
+      "path": "assets/audio/test_clip_01.wav"
+    }
+  ],
+  "fonts": [
+    {
+      "key": "test_font_01",
+      "resourcePath": "Fonts & Materials/LiberationSans SDF"
+    }
+  ],
+  "animations": [
+    {
+      "key": "test_anim_01",
+      "resourcePath": "Animations/test_swap_idle"
+    }
+  ],
+  "layouts": [
+    {
+      "key": "homemap_chipstrip",
+      "spacing": 120,
+      "padding_left": 16,
+      "padding_right": 16,
+      "child_size": 96
+    }
+  ]
 }
