@@ -17,6 +17,7 @@ import os
 import re
 import subprocess
 import sys
+import urllib.parse
 import webbrowser
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -209,7 +210,7 @@ class AdminHandler(BaseHTTPRequestHandler):
     def serve_media_list(self):
         # /api/media?dir=assets/chips
         qs = self.path.split("?", 1)[1] if "?" in self.path else ""
-        params = dict(p.split("=", 1) for p in qs.split("&") if "=" in p)
+        params = dict(urllib.parse.parse_qsl(qs))
         d = params.get("dir", "assets")
         try:
             root = safe_asset_path(self.repo_root, d + "/dummy.png").parent
@@ -236,7 +237,7 @@ class AdminHandler(BaseHTTPRequestHandler):
     def serve_media_file(self):
         # /api/media-file?path=assets/chips/chip_01.png
         qs = self.path.split("?", 1)[1] if "?" in self.path else ""
-        params = dict(p.split("=", 1) for p in qs.split("&") if "=" in p)
+        params = dict(urllib.parse.parse_qsl(qs))
         p = params.get("path", "")
         try:
             full = safe_asset_path(self.repo_root, p)
