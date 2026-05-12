@@ -1,7 +1,7 @@
 // Web Admin v3 — Batch Review modal. Folder drop → matcher chain → queue replace_asset changes.
 // Scope rule (per user): matchers only run on selectedSource().elements, never across sources.
 
-import { state, selectedSource } from "./state.js";
+import { state, selectedSource, persistDirty } from "./state.js";
 import { matchFile } from "./matchers.js";
 import { api } from "./api.js";
 
@@ -138,6 +138,7 @@ async function applyBatch(rows) {
   }
   try {
     await api.queueChanges(changes);
+    persistDirty();
     document.getElementById("v3-batch-modal").classList.remove("open");
     window.__v3_updateSaveBtn?.();
     window.__v3_renderAll();

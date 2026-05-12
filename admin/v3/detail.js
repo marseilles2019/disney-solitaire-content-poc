@@ -1,4 +1,4 @@
-import { state, selectedElement, selectedSource } from "./state.js";
+import { state, selectedElement, selectedSource, persistDirty } from "./state.js";
 import { api } from "./api.js";
 
 function escape(s) {
@@ -84,20 +84,35 @@ function readonlyMessage(e) {
 }
 
 function renderConfirmCard(e) {
+  const friendlyName = (e.gameObjectPath || "").split("/").pop() || e.id;
+  // Current thumb (existing asset)
+  const currentThumbSrc = e.thumbnailGuid ? api.thumbUrl(e.thumbnailGuid) : null;
+  const currentThumbHtml = currentThumbSrc
+    ? `<img class="drop-confirm-thumb drop-confirm-thumb-current" src="${currentThumbSrc}" alt="当前">`
+    : `<div class="drop-confirm-thumb drop-confirm-thumb-current" style="background:${escape(e.imageColorHex || '#d8c3a0')};"></div>`;
+
   return `
     <div class="drop-confirm">
-      <div class="drop-confirm-header">📥 Replace this element?</div>
-      <div class="drop-confirm-preview">
-        <img class="drop-confirm-thumb" src="${pendingDrop.objectUrl}">
-        <div>
-          <div class="drop-confirm-filename">${escape(pendingDrop.file.name)}</div>
-          <div class="drop-confirm-meta">${pendingDrop.byteSize} B · ${pendingDrop.file.type}</div>
+      <div class="drop-confirm-header">📥 替换 <b>${escape(friendlyName)}</b> 的图片？</div>
+      <div class="drop-confirm-compare">
+        <div class="drop-confirm-compare-side">
+          <div class="drop-confirm-compare-label">当前</div>
+          ${currentThumbHtml}
+        </div>
+        <div class="drop-confirm-compare-arrow">→</div>
+        <div class="drop-confirm-compare-side">
+          <div class="drop-confirm-compare-label">新</div>
+          <img class="drop-confirm-thumb drop-confirm-thumb-new" src="${pendingDrop.objectUrl}" alt="新">
         </div>
       </div>
-      <div class="drop-confirm-target mono">→ ${escape(e.currentAssetPath)}</div>
+      <div class="drop-confirm-filename">${escape(pendingDrop.file.name)} · ${pendingDrop.byteSize} B</div>
+      <details class="drop-confirm-tech">
+        <summary>技术细节</summary>
+        <div class="drop-confirm-target mono">写入 → ${escape(e.currentAssetPath)}</div>
+      </details>
       <div class="drop-confirm-actions">
-        <button class="drop-confirm-btn-cancel" id="v3-drop-cancel">Cancel</button>
-        <button class="drop-confirm-btn-apply" id="v3-drop-apply">Apply (queue change)</button>
+        <button class="drop-confirm-btn-cancel" id="v3-drop-cancel">取消</button>
+        <button class="drop-confirm-btn-apply" id="v3-drop-apply">替换（加入队列）</button>
       </div>
     </div>`;
 }
@@ -150,6 +165,7 @@ function applyPending(e) {
     filename: pendingDrop.file.name,
   });
   pendingDrop = null;  // don't revoke; ownership transferred to dirty map
+  persistDirty();
   updateSaveBtn();
   window.__v3_renderAll();
 }

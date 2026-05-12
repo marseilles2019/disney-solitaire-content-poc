@@ -468,3 +468,119 @@ body { overflow: hidden; }
 }
 .canvas-tech[open] { border-top: 1px solid var(--border); }
 .canvas-tech .mono { padding-top: 6px; text-align: center; }
+
+/* Layout legend (P1-3) */
+.v3-layout-legend {
+  margin: 12px 20px 0;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  font-size: 11px;
+  color: var(--text-muted);
+  flex-wrap: wrap;
+}
+.v3-legend-chip { display: inline-flex; align-items: center; gap: 5px; }
+.v3-legend-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid rgba(0,0,0,0.25);
+}
+.v3-legend-swatch-repl { background: #f97316; }
+.v3-legend-swatch-tagged { background: #d8c3a0; }
+.v3-legend-swatch-null { background: rgba(255,255,255,0.06); }
+.v3-legend-hint { margin-left: auto; color: var(--text-dim); font-style: italic; }
+
+/* Drop confirm comparison (P1-4) */
+.drop-confirm-compare {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 8px;
+  align-items: center;
+  margin: 10px 0 8px;
+}
+.drop-confirm-compare-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.drop-confirm-compare-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.drop-confirm-compare-arrow {
+  font-size: 16px;
+  color: var(--text-muted);
+}
+.drop-confirm-thumb {
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+.drop-confirm-thumb-current { border: 1px solid var(--border-strong); }
+.drop-confirm-thumb-new { border: 2px solid var(--emerald); box-shadow: 0 0 12px color-mix(in srgb, var(--emerald) 40%, transparent); }
+.drop-confirm-filename {
+  font-size: 11px;
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  word-break: break-all;
+  text-align: center;
+  margin: 4px 0 8px;
+}
+.drop-confirm-tech {
+  margin: 8px 0;
+  font-size: 10px;
+}
+.drop-confirm-tech summary {
+  cursor: pointer;
+  color: var(--text-dim);
+}
+
+/* Dirty restore banner (P1-5) */
+.v3-restore-banner {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-elev);
+  border: 1px solid var(--amber);
+  border-radius: 10px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  z-index: 200;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  font-size: 12px;
+}
+.v3-restore-banner b { color: var(--amber); }
+.v3-restore-list {
+  color: var(--text-muted);
+  margin-left: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+}
+.v3-restore-actions { display: flex; gap: 8px; }
+.v3-restore-actions button {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  cursor: pointer;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+}
+.v3-restore-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.v3-restore-actions button#v3-restore-discard:hover { border-color: var(--rose); color: var(--rose); }

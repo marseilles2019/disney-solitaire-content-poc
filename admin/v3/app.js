@@ -3,6 +3,7 @@
 
 import { state, dirtyCount } from "./state.js";
 import { api } from "./api.js";
+import { persistDirty, loadPersistedDirty, clearPersistedDirty, restoredDirty } from "./state.js";
 import "./sources.js";
 import "./list.js";
 import "./layout.js";
@@ -17,6 +18,7 @@ document.getElementById("v3-save-btn").addEventListener("click", async () => {
   }
   try {
     const r = await api.queueChanges(changes);
+    persistDirty();
     showToast(`Queued ${r.queuedCount} change(s) · 回 Unity 点 Apply Web Changes`);
   } catch (e) {
     showToast("Save failed: " + e.message, "error");
@@ -34,6 +36,28 @@ function showToast(msg, kind = "info") {
 async function init() {
   document.getElementById("v3-refresh-btn").addEventListener("click", refresh);
   await refresh();
+  const persisted = loadPersistedDirty();
+  if (persisted.length > 0) promptRestoreDirty(persisted);
+}
+
+function promptRestoreDirty(persisted) {
+  const banner = document.createElement("div");
+  banner.className = "v3-restore-banner";
+  banner.innerHTML = `
+    <div>
+      <b>你有 ${persisted.length} 个上次未应用的更改</b>
+      <span class="v3-restore-list">${persisted.map(p => p.filename || "(无名)").slice(0, 5).join(" · ")}${persisted.length > 5 ? " …" : ""}</span>
+    </div>
+    <div class="v3-restore-actions">
+      <button id="v3-restore-discard">丢弃</button>
+      <button id="v3-restore-resend" disabled title="重发需要重新上传图片（浏览器不允许持久化文件字节）">重发（暂未支持）</button>
+    </div>`;
+  document.body.appendChild(banner);
+  document.getElementById("v3-restore-discard").addEventListener("click", () => {
+    clearPersistedDirty();
+    banner.remove();
+    showToast(`已丢弃 ${persisted.length} 个未应用的更改`, "info");
+  });
 }
 
 async function refresh() {
@@ -104,6 +128,7 @@ async function pollLastApplied() {
         for (const d of state.dirty.values())
           if (d.previewObjectUrl) URL.revokeObjectURL(d.previewObjectUrl);
         state.dirty.clear();
+        clearPersistedDirty();
         window.__v3_updateSaveBtn?.();
         showToast(`Unity applied ${la.appliedChanges} change(s) · refreshing snapshot`, "success");
         await refresh();

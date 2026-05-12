@@ -34,6 +34,14 @@ export function renderLayout() {
       </div>`
     : "";
 
+  const legend = `
+    <div class="v3-layout-legend">
+      <span class="v3-legend-chip"><span class="v3-legend-swatch v3-legend-swatch-repl"></span>✓ 可替换</span>
+      <span class="v3-legend-chip"><span class="v3-legend-swatch v3-legend-swatch-tagged"></span>🔒 Unity 自带</span>
+      <span class="v3-legend-chip"><span class="v3-legend-swatch v3-legend-swatch-null"></span>○ 未指定</span>
+      <span class="v3-legend-hint">悬停元素查看详情 · 点击选中</span>
+    </div>`;
+
   root.innerHTML = `
     <div class="pane-header">
       <div class="pane-header-title">▣ 布局</div>
@@ -41,6 +49,7 @@ export function renderLayout() {
       <div class="pane-header-meta">${src.elements.length} 个元素 · ${srcReplaceable} 可替换</div>
     </div>
     ${emptyStateBanner}
+    ${legend}
     <div class="canvas-area">
       <div class="canvas-frame-wrap" style="aspect-ratio:${refW}/${refH}">
         <div class="canvas-frame" id="v3-canvas-frame"></div>
@@ -58,6 +67,13 @@ export function renderLayout() {
     const div = document.createElement("div");
     div.className = `el ${elKind(e)}${e.id === state.selectedElementId ? ' selected' : ''}${isDirty(e.id) ? ' dirty' : ''}`;
     div.dataset.id = e.id;
+    const friendlyName = (e.gameObjectPath || "").split("/").pop() || e.id;
+    const statusText = e.isReplaceable
+      ? "✓ 可替换"
+      : e.isBuiltin ? "🔒 Unity 自带"
+      : e.currentAssetPath === "(null)" ? "○ 未指定图片"
+      : "🔒 不可替换";
+    div.title = `${friendlyName} · ${statusText}`;
 
     // worldX is screen-pixel center; convert to top-left % within refW×refH
     const leftPct = ((e.rect.worldX - e.rect.worldWidth / 2) / refW) * 100;
