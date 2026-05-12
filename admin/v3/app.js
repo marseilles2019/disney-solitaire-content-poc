@@ -7,6 +7,7 @@ import "./sources.js";
 import "./list.js";
 import "./layout.js";
 import "./detail.js";
+import "./batch.js";
 
 document.getElementById("v3-save-btn").addEventListener("click", async () => {
   if (state.dirty.size === 0) return;

@@ -26,6 +26,17 @@ export function renderList() {
       window.__v3_renderAll();
     });
   });
+
+  const dz = document.getElementById("v3-list-dropzone");
+  const rows = document.getElementById("v3-list-rows");
+  [dz, rows].forEach(z => {
+    if (!z) return;
+    z.addEventListener("dragover", ev => { ev.preventDefault(); });
+    z.addEventListener("drop", ev => {
+      ev.preventDefault();
+      window.openBatchFromDataTransfer(ev.dataTransfer);
+    });
+  });
 }
 
 function renderRow(e) {
