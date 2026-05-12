@@ -1,0 +1,18 @@
+{
+  "sprites": [
+    { "key": "chip_01", "path": "assets/chips/chip_01.png" },
+    { "key": "chip_02", "path": "assets/chips/chip_02.png" },
+    { "key": "chip_03", "path": "assets/chips/chip_03.png" },
+    { "key": "chip_04", "path": "assets/chips/chip_04.png" },
+    { "key": "chip_05", "path": "assets/chips/chip_05.png" }
+  ],
+  "layouts": [
+    {
+      "key": "homemap_chipstrip",
+      "spacing": 24,
+      "padding_left": 16,
+      "padding_right": 16,
+      "child_size": 96
+    }
+  ]
+}
