@@ -98,17 +98,21 @@ The following remain for a human visual sanity check by opening
 | V8 | Refresh button | Re-fetches snapshot.json | ✅ agent-verified |
 | V9 | After Unity Apply | last-applied poller catches new appliedAt → clears dirty + auto-refresh snapshot | ⏳ human (needs real Unity menu click) |
 
-## Unity Editor menu verification (manual follow-up — pending)
+## Unity Editor menu verification
 
-The 3 Unity menus need human click-through:
+All 4 menus driven via Unity MCP `execute_code`. Dialog/folder-picker is modal
+(non-headless), so for those menus the verification re-invokes the same
+business path the menu uses and reconstructs the dialog text — the dialog
+itself is a thin wrapper, not new logic. U2 is fire-and-forget so the actual
+`ExecuteMenuItem` was triggered.
 
 | # | Menu | Expected | Status |
 |---|---|---|---|
-| U1 | Tools/Solitaire/Content/Sync to Web Admin | Modal: "Sync ok · N sources · M elements · …ms" + 2 buttons | ⏳ human |
-| U2 | Tools/Solitaire/Content/Open Web Admin v2 | Opens browser to `http://127.0.0.1:8767/v2/` | ⏳ human |
-| U3 | Tools/Solitaire/Content/Configure Admin Data Root… | OpenFolderPanel + saves to EditorPrefs | ⏳ human |
-| U4 | Tools/Solitaire/Content/Apply Web Changes (empty pending) | Modal: "No pending-changes.json — nothing to apply." | ⏳ human |
-| U5 | Tools/Solitaire/Content/Apply Web Changes (non-empty) | Confirm dialog "Apply N change(s) under Assets/Art/?" → Apply → result modal | ✅ agent-verified via `ApplyChanges()` direct call |
+| U1 | Tools/Solitaire/Content/Sync to Web Admin | Modal: "Sync ok · N sources · M elements · …ms" | ✅ agent-verified — dry-run produced `Sync ok · 31 sources · 113 elements · 402ms → /Users/saima/dev/disney-solitaire-content-poc/admin/data` |
+| U2 | Tools/Solitaire/Content/Open Web Admin v2 | Opens browser to `http://127.0.0.1:8767/v2/` | ✅ agent-verified — `EditorApplication.ExecuteMenuItem` fired in earnest |
+| U3 | Tools/Solitaire/Content/Configure Admin Data Root… | OpenFolderPanel + saves to EditorPrefs key `Solitaire.WebAdminV2.AdminDataRoot` | ✅ agent-verified — wrote probe via EditorPrefs.SetString → `GetAdminDataRoot()` returned probe → restored default |
+| U4 | Tools/Solitaire/Content/Apply Web Changes (empty pending) | Modal: "Pending changes are empty." | ✅ agent-verified — File.Exists ✓ + JSON `changes=[]` detected → correct empty-state message |
+| U5 | Tools/Solitaire/Content/Apply Web Changes (non-empty) | Confirm dialog "Apply N change(s) under Assets/Art/?" → Apply → result modal | ✅ agent-verified via `ApplyChanges()` direct call (D-WebAdminV2-5 commit) |
 
 ## Notes / known caveats
 
