@@ -30,8 +30,12 @@ from typing import Tuple
 DEFAULT_PORT = 8767
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
 ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".ogg", ".wav", ".json"}
+V2_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg"}
 ADMIN_DIR_NAME = "admin"
 PUBLIC_DIR_NAME = "public"
+V2_DIR_NAME = "v2"            # admin/v2/ — frontend code
+V2_DATA_DIR_NAME = "data"     # admin/data/ — Unity ↔ admin exchange
+V2_TARGET_PATH_PREFIX = "Assets/Art/"  # write-only allowed prefix in Unity project
 
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -137,6 +141,7 @@ def bump_manifest_version(manifest_path: Path) -> str:
 
 class AdminHandler(BaseHTTPRequestHandler):
     repo_root: Path  # set on subclass
+    data_root: Path  # set on subclass — admin/data/ for v2 (Unity exchange)
 
     # ── helpers ─────────────────────────────────────────────────────────
 
@@ -175,6 +180,8 @@ class AdminHandler(BaseHTTPRequestHandler):
             return
         if self.path.startswith("/admin/") or self.path == "/admin":
             return self.serve_admin_static()
+        if self.path.startswith("/v2/") or self.path == "/v2":
+            return self.serve_v2_static()
         self.send_error(404, "Not found")
 
     def handle_api_get(self):
@@ -189,6 +196,14 @@ class AdminHandler(BaseHTTPRequestHandler):
             return self.serve_media_list()
         if path == "/api/status":
             return self.serve_status()
+        if path == "/api/v2/snapshot":
+            return self.serve_v2_snapshot()
+        if path.startswith("/api/v2/thumb"):
+            return self.serve_v2_thumb()
+        if path.startswith("/api/v2/asset"):
+            return self.serve_v2_asset()
+        if path == "/api/v2/last-applied":
+            return self.serve_v2_last_applied()
         self.send_error(404, "API not found")
 
     def serve_manifest(self):
@@ -285,6 +300,145 @@ class AdminHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    # ── v2: Unity design-time asset editor ─────────────────────────────
+
+    def serve_v2_static(self):
+        sub = self.path[len("/v2"):].lstrip("/").split("?", 1)[0]
+        if not sub:
+            sub = "index.html"
+        if ".." in sub.split("/"):
+            return self.send_error(400, "Invalid path")
+        v2_root = (self.repo_root / ADMIN_DIR_NAME / V2_DIR_NAME).resolve()
+        full = (v2_root / sub).resolve()
+        if v2_root not in full.parents and full != v2_root:
+            return self.send_error(400, "Invalid path")
+        if not full.exists() or full.is_dir():
+            return self.send_error(404, f"Not found: {sub}")
+        ext = full.suffix.lower()
+        mime = {".html": "text/html; charset=utf-8",
+                ".css": "text/css; charset=utf-8",
+                ".js": "application/javascript; charset=utf-8",
+                ".svg": "image/svg+xml"}.get(ext, "application/octet-stream")
+        data = full.read_bytes()
+        self.send_response(200)
+        self.send_header("Content-Type", mime)
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(data)
+
+    def serve_v2_snapshot(self):
+        p = self.data_root / "snapshot.json"
+        if not p.exists():
+            return self.send_error_json(
+                404,
+                "snapshot.json missing — run Unity: Tools/Solitaire/Content/Sync to Web Admin",
+                "missing_snapshot")
+        try:
+            data = json.loads(p.read_text())
+        except json.JSONDecodeError as e:
+            return self.send_error_json(500, f"snapshot.json invalid: {e}", "invalid_json")
+        return self.send_json(200, data)
+
+    def serve_v2_thumb(self):
+        qs = self.path.split("?", 1)[1] if "?" in self.path else ""
+        params = dict(urllib.parse.parse_qsl(qs))
+        guid = params.get("guid", "")
+        if not re.fullmatch(r"[a-f0-9]{32}", guid):
+            return self.send_error_json(400, "invalid guid", "invalid_guid")
+        full = self.data_root / "cache" / f"{guid}.png"
+        if not full.exists():
+            return self.send_error(404, "Not found")
+        data = full.read_bytes()
+        self.send_response(200)
+        self.send_header("Content-Type", "image/png")
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(data)
+
+    def serve_v2_asset(self):
+        # Serve any PNG/JPG under <unityProjectRoot>/Assets/ — used as live preview
+        # of the on-disk source (after Apply, this shows the updated bytes).
+        qs = self.path.split("?", 1)[1] if "?" in self.path else ""
+        params = dict(urllib.parse.parse_qsl(qs))
+        rel = params.get("path", "")
+        if not rel.startswith("Assets/"):
+            return self.send_error_json(400, "must start with Assets/", "invalid_path")
+        if ".." in rel.split("/"):
+            return self.send_error_json(400, "directory traversal forbidden", "invalid_path")
+        ext = Path(rel).suffix.lower()
+        if ext not in V2_IMAGE_EXTENSIONS:
+            return self.send_error_json(400, "extension not allowed", "invalid_extension")
+
+        snap_p = self.data_root / "snapshot.json"
+        if not snap_p.exists():
+            return self.send_error_json(404, "snapshot.json missing", "missing_snapshot")
+        snap = json.loads(snap_p.read_text())
+        unity_root_str = snap.get("unityProjectRoot", "")
+        if not unity_root_str:
+            return self.send_error_json(500, "unityProjectRoot missing in snapshot", "missing_unity_root")
+
+        unity_root = Path(unity_root_str).resolve()
+        full = (unity_root / rel).resolve()
+        assets_root = (unity_root / "Assets").resolve()
+        if assets_root not in full.parents and full != assets_root:
+            return self.send_error_json(400, "outside Assets/", "invalid_path")
+        if not full.exists():
+            return self.send_error(404, "Not found")
+        mime = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg"}[ext]
+        data = full.read_bytes()
+        self.send_response(200)
+        self.send_header("Content-Type", mime)
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(data)
+
+    def serve_v2_last_applied(self):
+        p = self.data_root / "last-applied.json"
+        if not p.exists():
+            return self.send_json(200, {})
+        try:
+            data = json.loads(p.read_text())
+        except json.JSONDecodeError:
+            return self.send_json(200, {})
+        return self.send_json(200, data)
+
+    def handle_v2_queue_changes(self):
+        body = self.read_json_body()
+        changes = body.get("changes", [])
+        if not isinstance(changes, list):
+            return self.send_error_json(400, "changes must be array", "invalid_body")
+        for c in changes:
+            target = c.get("targetAssetPath", "")
+            if not target.startswith(V2_TARGET_PATH_PREFIX):
+                return self.send_error_json(
+                    400,
+                    f"targetAssetPath must start with {V2_TARGET_PATH_PREFIX} (got: {target!r})",
+                    "invalid_target")
+            if ".." in target.split("/"):
+                return self.send_error_json(400, "directory traversal forbidden", "invalid_target")
+            if Path(target).suffix.lower() not in V2_IMAGE_EXTENSIONS:
+                return self.send_error_json(400, "extension not allowed", "invalid_extension")
+            try:
+                decoded = base64.b64decode(c.get("newBytesBase64", ""), validate=True)
+            except Exception as e:
+                return self.send_error_json(400, f"base64 decode: {e}", "invalid_base64")
+            if len(decoded) > MAX_UPLOAD_BYTES:
+                return self.send_error_json(413, "exceeds 10 MB", "size_too_large")
+        # Overwrite pending — frontend sends the full desired pending set
+        p = self.data_root / "pending-changes.json"
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(json.dumps({"changes": changes}, indent=2) + "\n")
+        return self.send_json(200, {"ok": True, "queuedCount": len(changes)})
+
+    def handle_v2_clear_pending(self):
+        p = self.data_root / "pending-changes.json"
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(json.dumps({"changes": []}, indent=2) + "\n")
+        return self.send_json(200, {"ok": True})
+
     # ── POST ────────────────────────────────────────────────────────────
 
     def do_POST(self):
@@ -296,6 +450,10 @@ class AdminHandler(BaseHTTPRequestHandler):
             return self.handle_save_content_map()
         if self.path == "/api/publish":
             return self.handle_publish()
+        if self.path == "/api/v2/queue-changes":
+            return self.handle_v2_queue_changes()
+        if self.path == "/api/v2/clear-pending":
+            return self.handle_v2_clear_pending()
         self.send_error(404, "API not found")
 
     def handle_upload(self):
@@ -383,9 +541,14 @@ class AdminHandler(BaseHTTPRequestHandler):
 # ────────────────────────────────────────────────────────────────────────────
 # Server factory + entrypoint
 
-def make_server(host: str, port: int, repo_root: Path) -> ThreadingHTTPServer:
-    # Create handler subclass with bound repo_root (class-level attribute)
-    handler_cls = type("BoundAdminHandler", (AdminHandler,), {"repo_root": repo_root})
+def make_server(host: str, port: int, repo_root: Path,
+                data_root: Path = None) -> ThreadingHTTPServer:
+    if data_root is None:
+        data_root = repo_root / ADMIN_DIR_NAME / V2_DATA_DIR_NAME
+    handler_cls = type("BoundAdminHandler", (AdminHandler,), {
+        "repo_root": repo_root,
+        "data_root": data_root,
+    })
     return ThreadingHTTPServer((host, port), handler_cls)
 
 
@@ -395,7 +558,9 @@ def main():
     host = "127.0.0.1"
     server = make_server(host, port, repo_root)
     url = f"http://{host}:{port}/admin/"
+    v2_url = f"http://{host}:{port}/v2/"
     print(f"[admin] serving {repo_root}/admin at {url}")
+    print(f"[admin] v2 (Unity design-time editor) at {v2_url}")
     print(f"[admin] repo: {repo_root}")
     print(f"[admin] Ctrl-C to stop")
     try:
