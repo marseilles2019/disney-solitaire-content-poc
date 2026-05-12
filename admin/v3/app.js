@@ -50,6 +50,10 @@ async function refresh() {
 
 function pickInitialSourceIdx() {
   const sources = state.snapshot?.sources ?? [];
+  // Prefer source with at least one replaceable element
+  for (let i = 0; i < sources.length; i++)
+    if (sources[i].elements.some(e => e.isReplaceable)) return i;
+  // Otherwise first source with any elements
   for (let i = 0; i < sources.length; i++)
     if (sources[i].elements.length > 0) return i;
   return sources.length > 0 ? 0 : -1;

@@ -13,18 +13,43 @@ export function renderLayout() {
   const refW = canvas.referenceWidth;
   const refH = canvas.referenceHeight;
 
+  // Detect 0 replaceable globally
+  const sources = state.snapshot.sources;
+  const globalReplaceable = sources.reduce((n, s) => n + s.elements.filter(e => e.isReplaceable).length, 0);
+  const srcReplaceable = src.elements.filter(e => e.isReplaceable).length;
+
+  const emptyStateBanner = globalReplaceable === 0
+    ? `<div class="v3-empty-banner">
+        <div class="v3-empty-banner-title">这个工程目前没有可替换的 PNG 资源</div>
+        <div class="v3-empty-banner-body">
+          可能是因为美术资源用了运行时注入（CDN）而非静态 PNG。
+          要让资源出现在这里：让工程师把 PNG 放到 <code>Assets/Art/</code> 下并赋给 UI Image，
+          然后在 Unity 菜单 <code>Tools/Solitaire/Content/Sync to Web Admin</code>。
+          现在能做：浏览 UI 布局结构（下方）/ 查看现有资源分布。
+        </div>
+      </div>`
+    : srcReplaceable === 0
+    ? `<div class="v3-empty-banner v3-empty-banner-soft">
+        这个页面没有可替换的资源 · 看左侧带 <b>✓ N</b> 的页面找可改的图。
+      </div>`
+    : "";
+
   root.innerHTML = `
     <div class="pane-header">
-      <div class="pane-header-title">▣ Layout</div>
+      <div class="pane-header-title">▣ 布局</div>
       <div class="pane-header-subtitle">${escape(src.displayName)}</div>
-      <div class="pane-header-meta">${src.elements.length} elements · ${escape(canvas.renderMode)}</div>
+      <div class="pane-header-meta">${src.elements.length} 个元素 · ${srcReplaceable} 可替换</div>
     </div>
+    ${emptyStateBanner}
     <div class="canvas-area">
       <div class="canvas-frame-wrap" style="aspect-ratio:${refW}/${refH}">
         <div class="canvas-frame" id="v3-canvas-frame"></div>
       </div>
     </div>
-    <div class="canvas-info mono">ref ${refW}×${refH} · scale ${canvas.scaleFactor ?? 1}</div>`;
+    <details class="canvas-tech">
+      <summary>技术信息</summary>
+      <div class="mono">${escape(canvas.renderMode)} · 参考分辨率 ${refW}×${refH}</div>
+    </details>`;
 
   const frame = document.getElementById("v3-canvas-frame");
 

@@ -369,3 +369,102 @@ body { overflow: hidden; }
 }
 .matcher-chip-on:hover { filter: brightness(1.15); }
 .matcher-chip-off:hover { color: var(--text) !important; border-color: var(--accent) !important; }
+
+/* ── V3-T12 — empty-state guidance + replaceable badges (P0-1, P0-2, P1-1, P1-2) ── */
+
+/* Sources sidebar — replaceable badge + lock */
+.v3-sidebar-repl {
+  background: var(--emerald);
+  color: #042f1f;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  margin-left: 4px;
+}
+.v3-sidebar-lock {
+  font-size: 11px;
+  opacity: 0.5;
+  margin-left: 4px;
+}
+.v3-sidebar-locked .v2-sidebar-name { opacity: 0.5; }
+
+/* List row — replaceable indicator + readonly variant */
+.list-row.readonly { opacity: 0.7; }
+.list-row.readonly .list-thumb { opacity: 0.55; }
+.list-row-status {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+.list-row-status-repl {
+  background: color-mix(in srgb, var(--emerald) 18%, transparent);
+  color: var(--emerald);
+}
+.list-row-status-lock {
+  background: rgba(255,255,255,0.04);
+  color: var(--text-dim);
+}
+
+/* Detail — title + tech disclosure */
+.detail-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+.detail-tech {
+  margin-top: 8px;
+  font-size: 11px;
+}
+.detail-tech summary {
+  cursor: pointer;
+  color: var(--text-dim);
+  padding: 4px 0;
+}
+.detail-tech summary:hover { color: var(--text-muted); }
+.detail-tech[open] summary { margin-bottom: 6px; }
+
+/* Layout empty-state */
+.v3-empty-banner {
+  margin: 14px 20px 0;
+  padding: 16px 18px;
+  background: color-mix(in srgb, var(--purple) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--purple) 40%, transparent);
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text);
+}
+.v3-empty-banner-title {
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--purple);
+}
+.v3-empty-banner-body code {
+  background: rgba(0,0,0,0.3);
+  color: var(--accent);
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+}
+.v3-empty-banner-soft {
+  background: rgba(255,255,255,0.03);
+  border: 1px dashed var(--border-strong);
+  color: var(--text-muted);
+  text-align: center;
+}
+.canvas-tech {
+  padding: 8px 16px 12px;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+.canvas-tech summary {
+  cursor: pointer;
+  text-align: center;
+  padding: 4px 0;
+}
+.canvas-tech[open] { border-top: 1px solid var(--border); }
+.canvas-tech .mono { padding-top: 6px; text-align: center; }

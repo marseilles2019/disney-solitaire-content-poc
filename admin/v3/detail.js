@@ -10,7 +10,7 @@ let pendingDrop = null;  // {file, base64, objectUrl, byteSize}
 export function renderDetail() {
   const pane = document.getElementById("v3-detail");
   const e = selectedElement();
-  if (!e) { pane.innerHTML = `<div style="padding:40px;color:var(--text-dim);">Select an element</div>`; return; }
+  if (!e) { pane.innerHTML = `<div style="padding:40px;color:var(--text-dim);">选择一个元素以查看详情</div>`; return; }
 
   const isReplaceable = e.isReplaceable;
   const thumbSrc = e.thumbnailGuid ? api.thumbUrl(e.thumbnailGuid) : null;
@@ -18,37 +18,69 @@ export function renderDetail() {
     ? `<img src="${thumbSrc}" style="width:60%;aspect-ratio:1;border-radius:8px;">`
     : `<div style="width:60%;aspect-ratio:1;border-radius:8px;background:${escape(e.imageColorHex || '#d8c3a0')};"></div>`;
 
+  // Friendly path: last segment as title, full path as subtitle
+  const segments = (e.gameObjectPath || "").split("/").filter(Boolean);
+  const lastSeg = segments[segments.length - 1] || e.id;
+  const parentPath = segments.slice(0, -1).join(" › ") || "(root)";
+
+  // Friendly asset display: hide Resources/unity_builtin_extra: prefix
+  const friendlyAsset = friendlyAssetLabel(e);
+
   let cta;
   if (pendingDrop) {
     cta = renderConfirmCard(e);
   } else if (isReplaceable) {
     cta = `
-      <button class="detail-replace-btn" id="v3-replace-btn">📤 Replace PNG/JPG</button>
+      <button class="detail-replace-btn" id="v3-replace-btn">📤 替换图片</button>
       <div class="dropzone-hint" id="v3-detail-dropzone">
-        <b>… or drag a PNG/JPG here</b>
-        <div class="dropzone-hint-mini">→ writes to ${escape(e.currentAssetPath)}</div>
+        <b>或拖一张 PNG/JPG 到这里</b>
+        <div class="dropzone-hint-mini">→ 写入 ${escape(e.currentAssetPath)}</div>
       </div>`;
   } else {
-    cta = `<div class="detail-readonly">read-only · ${e.isBuiltin ? 'builtin asset' : (e.contentTagKey ? 'managed by v1 ContentTag' : 'no sprite assigned')}</div>`;
+    const reasonText = readonlyMessage(e);
+    cta = `<div class="detail-readonly">🔒 ${escape(reasonText)}</div>`;
   }
 
   pane.innerHTML = `
     <div class="detail-thumb-wrap">${thumbHtml}</div>
-    <div class="detail-breadcrumb mono">${escape(e.gameObjectPath)}</div>
+    <div class="detail-title">${escape(lastSeg)}</div>
+    <div class="detail-breadcrumb mono">${escape(parentPath)}</div>
     <div class="detail-badges">
       <span class="v2-component-badge v2-component-${e.componentType.toLowerCase()}">${e.componentType}</span>
       ${e.contentTagKey ? `<span class="v2-tag-badge">tag: ${escape(e.contentTagKey)}</span>` : ''}
     </div>
     <div class="detail-section">
-      <div class="detail-section-title">Asset</div>
+      <div class="detail-section-title">资源</div>
       <div class="detail-kv">
-        <span class="k">path</span><span class="v">${escape(e.currentAssetPath)}</span>
-        <span class="k">guid</span><span class="v">${escape(e.currentAssetGuid || '—')}</span>
+        <span class="k">文件</span><span class="v">${escape(friendlyAsset)}</span>
       </div>
+      <details class="detail-tech">
+        <summary>技术细节</summary>
+        <div class="detail-kv">
+          <span class="k">asset path</span><span class="v">${escape(e.currentAssetPath)}</span>
+          <span class="k">guid</span><span class="v">${escape(e.currentAssetGuid || '—')}</span>
+        </div>
+      </details>
     </div>
     ${cta}`;
 
   wireDetail(e);
+}
+
+function friendlyAssetLabel(e) {
+  const p = e.currentAssetPath || "";
+  if (p === "(null)") return "(尚未指定图片)";
+  if (p.startsWith("Resources/unity_builtin_extra")) return "Unity 自带占位图（不可直接替换）";
+  if (p.startsWith("(runtime")) return "运行时生成的纹理";
+  if (p.startsWith("Assets/")) return p.replace(/^Assets\//, "");
+  return p;
+}
+
+function readonlyMessage(e) {
+  if (e.isBuiltin) return "Unity 自带占位图 · 这种资源由工程师配置；如要替换请联系 dev 把它换成可编辑的 PNG 资源。";
+  if (e.currentAssetPath === "(null)") return "这个元素还没有指定图片 · 联系 dev 在 Unity 里给它赋一张 sprite。";
+  if (e.currentAssetPath?.startsWith("(runtime")) return "运行时生成的纹理 · 无法通过这个工具替换。";
+  return "暂不可直接替换 · 可能是图集子图或其他特殊资源。";
 }
 
 function renderConfirmCard(e) {

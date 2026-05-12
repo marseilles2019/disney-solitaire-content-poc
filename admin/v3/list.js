@@ -44,17 +44,31 @@ function renderRow(e) {
   const dirty = isDirty(e.id);
   const d = dirty ? state.dirty.get(e.id) : null;
   const thumbStyle = dirty && d.previewObjectUrl ? `background-image:url('${d.previewObjectUrl}');background-size:cover;` : "";
+  // Status icon: ✓ replaceable, 🔒 locked
+  const statusIcon = e.isReplaceable
+    ? `<span class="list-row-status list-row-status-repl" title="可替换">✓</span>`
+    : `<span class="list-row-status list-row-status-lock" title="${escape(readonlyReason(e))}">🔒</span>`;
+  // Friendly name: last segment of gameObjectPath
+  const friendlyName = (e.gameObjectPath || "").split("/").pop() || e.id;
   return `
-    <div class="list-row${sel}${dirty ? ' dirty' : ''}" data-id="${escape(e.id)}">
+    <div class="list-row${sel}${dirty ? ' dirty' : ''}${!e.isReplaceable ? ' readonly' : ''}" data-id="${escape(e.id)}">
       <div class="list-thumb" style="${thumbStyle}"></div>
       <div class="list-body">
-        <div class="list-name">${escape(e.gameObjectPath.split("/").pop() || e.id)}
-          ${dirty ? `<span class="list-row-dirty-tag">⌫ queued · ${d.byteSize}B</span>` : ''}
+        <div class="list-name">${escape(friendlyName)}
+          ${dirty ? `<span class="list-row-dirty-tag">⌫ 待发送 · ${d.byteSize}B</span>` : ''}
         </div>
         <div class="list-meta">
+          ${statusIcon}
           <span class="list-comp list-comp-${e.componentType.toLowerCase()}">${e.componentType}</span>
         </div>
       </div>
     </div>`;
+}
+
+function readonlyReason(e) {
+  if (e.isBuiltin) return "Unity 自带占位图 · 联系 dev 替换";
+  if (e.currentAssetPath === "(null)") return "尚未指定图片";
+  if (e.currentAssetPath?.startsWith("(runtime")) return "运行时纹理";
+  return "图集子图等不可直接替换";
 }
 window.renderList = renderList;
