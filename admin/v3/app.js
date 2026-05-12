@@ -5,6 +5,7 @@ import { state, dirtyCount } from "./state.js";
 import { api } from "./api.js";
 import "./sources.js";
 import "./list.js";
+import "./layout.js";
 
 async function init() {
   document.getElementById("v3-refresh-btn").addEventListener("click", refresh);
