@@ -6,6 +6,29 @@ import { api } from "./api.js";
 import "./sources.js";
 import "./list.js";
 import "./layout.js";
+import "./detail.js";
+
+document.getElementById("v3-save-btn").addEventListener("click", async () => {
+  if (state.dirty.size === 0) return;
+  const changes = [];
+  for (const [id, d] of state.dirty.entries()) {
+    changes.push({ id, actionType: "replace_asset", targetAssetPath: d.targetAssetPath, newBytesBase64: d.newBytesBase64 });
+  }
+  try {
+    const r = await api.queueChanges(changes);
+    showToast(`Queued ${r.queuedCount} change(s) · 回 Unity 点 Apply Web Changes`);
+  } catch (e) {
+    showToast("Save failed: " + e.message, "error");
+  }
+});
+
+function showToast(msg, kind = "info") {
+  const el = document.getElementById("v3-toast");
+  el.className = `v2-toast v2-toast-${kind} v2-toast-show`;
+  el.textContent = msg;
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => { el.className = "v2-toast"; }, 6000);
+}
 
 async function init() {
   document.getElementById("v3-refresh-btn").addEventListener("click", refresh);
