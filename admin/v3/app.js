@@ -77,3 +77,24 @@ window.__v3_state = state;
 window.__v3_dirtyCount = dirtyCount;
 
 init();
+
+async function pollLastApplied() {
+  try {
+    const la = await api.getLastApplied();
+    if (la && la.appliedAt && (!state.lastApplied || la.appliedAt !== state.lastApplied.appliedAt)) {
+      const wasInitialized = state.lastApplied !== null;
+      state.lastApplied = la;
+      document.getElementById("v3-last-applied").innerHTML = `<span class="mono">applied ${la.appliedChanges || 0} @ ${la.appliedAt}</span>`;
+      if (wasInitialized && la.appliedChanges > 0) {
+        for (const d of state.dirty.values())
+          if (d.previewObjectUrl) URL.revokeObjectURL(d.previewObjectUrl);
+        state.dirty.clear();
+        window.__v3_updateSaveBtn?.();
+        showToast(`Unity applied ${la.appliedChanges} change(s) · refreshing snapshot`, "success");
+        await refresh();
+      }
+    }
+  } catch (_) { /* silent */ }
+  setTimeout(pollLastApplied, 3000);
+}
+pollLastApplied();
