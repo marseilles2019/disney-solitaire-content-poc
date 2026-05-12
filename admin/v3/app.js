@@ -84,6 +84,17 @@ init();
 
 async function pollLastApplied() {
   try {
+    const ws = await api.getWatchState();
+    const indicator = document.getElementById("v3-watch-indicator");
+    if (indicator) {
+      if (ws.watchMode) {
+        indicator.innerHTML = '<span style="color:var(--emerald);font-weight:600;">🟢 自动应用</span>';
+        indicator.title = "Unity 后台监听中 · 保存后 2s 内自动应用";
+      } else {
+        indicator.innerHTML = '<span style="color:var(--text-dim);">⚪ 手动应用</span>';
+        indicator.title = "需要在 Unity 点 Tools/Solitaire/Content/Apply Web Changes";
+      }
+    }
     const la = await api.getLastApplied();
     if (la && la.appliedAt && (!state.lastApplied || la.appliedAt !== state.lastApplied.appliedAt)) {
       const wasInitialized = state.lastApplied !== null;

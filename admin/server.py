@@ -207,6 +207,8 @@ class AdminHandler(BaseHTTPRequestHandler):
             return self.serve_v2_asset()
         if path == "/api/v2/last-applied":
             return self.serve_v2_last_applied()
+        if path == "/api/v2/watch-state":
+            return self.serve_v2_watch_state()
         self.send_error(404, "API not found")
 
     def serve_manifest(self):
@@ -431,6 +433,16 @@ class AdminHandler(BaseHTTPRequestHandler):
             data = json.loads(p.read_text())
         except json.JSONDecodeError:
             return self.send_json(200, {})
+        return self.send_json(200, data)
+
+    def serve_v2_watch_state(self):
+        p = self.data_root / "watch-state.json"
+        if not p.exists():
+            return self.send_json(200, {"watchMode": False})
+        try:
+            data = json.loads(p.read_text())
+        except json.JSONDecodeError:
+            return self.send_json(200, {"watchMode": False})
         return self.send_json(200, data)
 
     def handle_v2_queue_changes(self):

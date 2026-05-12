@@ -34,6 +34,11 @@ export const api = {
     return r.ok ? r.json() : {};
   },
 
+  async getWatchState() {
+    const r = await fetch(`${V2}/watch-state`, { cache: "no-store" });
+    return r.ok ? r.json() : { watchMode: false };
+  },
+
   thumbUrl(guid) {
     if (!guid) return null;
     return `${V2}/thumb?guid=${encodeURIComponent(guid)}&_t=${Date.now()}`;
