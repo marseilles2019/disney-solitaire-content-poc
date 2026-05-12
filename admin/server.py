@@ -34,6 +34,7 @@ V2_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg"}
 ADMIN_DIR_NAME = "admin"
 PUBLIC_DIR_NAME = "public"
 V2_DIR_NAME = "v2"            # admin/v2/ — frontend code
+V3_DIR_NAME = "v3"            # admin/v3/ — v3 frontend (parallel to v2; same backend)
 V2_DATA_DIR_NAME = "data"     # admin/data/ — Unity ↔ admin exchange
 V2_TARGET_PATH_PREFIX = "Assets/Art/"  # write-only allowed prefix in Unity project
 
@@ -182,6 +183,8 @@ class AdminHandler(BaseHTTPRequestHandler):
             return self.serve_admin_static()
         if self.path.startswith("/v2/") or self.path == "/v2":
             return self.serve_v2_static()
+        if self.path.startswith("/v3/") or self.path == "/v3":
+            return self.serve_v3_static()
         self.send_error(404, "Not found")
 
     def handle_api_get(self):
@@ -311,6 +314,31 @@ class AdminHandler(BaseHTTPRequestHandler):
         v2_root = (self.repo_root / ADMIN_DIR_NAME / V2_DIR_NAME).resolve()
         full = (v2_root / sub).resolve()
         if v2_root not in full.parents and full != v2_root:
+            return self.send_error(400, "Invalid path")
+        if not full.exists() or full.is_dir():
+            return self.send_error(404, f"Not found: {sub}")
+        ext = full.suffix.lower()
+        mime = {".html": "text/html; charset=utf-8",
+                ".css": "text/css; charset=utf-8",
+                ".js": "application/javascript; charset=utf-8",
+                ".svg": "image/svg+xml"}.get(ext, "application/octet-stream")
+        data = full.read_bytes()
+        self.send_response(200)
+        self.send_header("Content-Type", mime)
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(data)
+
+    def serve_v3_static(self):
+        sub = self.path[len("/v3"):].lstrip("/").split("?", 1)[0]
+        if not sub:
+            sub = "index.html"
+        if ".." in sub.split("/"):
+            return self.send_error(400, "Invalid path")
+        v3_root = (self.repo_root / ADMIN_DIR_NAME / V3_DIR_NAME).resolve()
+        full = (v3_root / sub).resolve()
+        if v3_root not in full.parents and full != v3_root:
             return self.send_error(400, "Invalid path")
         if not full.exists() or full.is_dir():
             return self.send_error(404, f"Not found: {sub}")

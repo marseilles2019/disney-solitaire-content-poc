@@ -1,0 +1,37 @@
+/* Web Admin v3 — 4-pane cascade shell. Builds on /admin/styles.css + /v2/styles.css. */
+
+body { overflow: hidden; }
+
+.v3-cascade {
+  display: grid;
+  grid-template-columns: 220px 1fr 340px 360px;
+  height: calc(100vh - 56px);
+}
+
+.v3-pane {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.v3-pane-sources {
+  background: var(--bg-elev);
+  border-right: 1px solid var(--border);
+}
+
+.v3-pane-layout {
+  background: var(--bg);
+}
+
+.v3-pane-list {
+  background: var(--bg-elev);
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+}
+
+.v3-pane-detail {
+  background: var(--bg-elev);
+  overflow-y: auto;
+  padding: 20px;
+}
