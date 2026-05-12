@@ -360,7 +360,7 @@
     "layouts": [
         {
             "key": "homemap_chipstrip",
-            "spacing": 60,
+            "spacing": 120,
             "padding_left": 16,
             "padding_right": 16,
             "child_size": 96
