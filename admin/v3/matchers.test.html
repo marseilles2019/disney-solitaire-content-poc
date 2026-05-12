@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>matchers.js tests</title>
+<style>body{font:14px monospace;background:#0F172A;color:#fff;padding:20px;}
+.pass{color:#10b981}.fail{color:#f43f5e;font-weight:bold}</style></head>
+<body>
+<h2>matchers.js — unit tests</h2>
+<div id="out"></div>
+<script type="module">
+import { matchers, matchFile } from "./matchers.js";
+
+const elements = [
+  { id: "e1", currentAssetPath: "Assets/Art/UI/Chips/chip_01.png", contentTagKey: "chips/chip_01", gameObjectPath: "Canvas/Strip/ChapterChip_1" },
+  { id: "e2", currentAssetPath: "Assets/Art/UI/Chips/chip_02.png", contentTagKey: "chips/chip_02", gameObjectPath: "Canvas/Strip/ChapterChip_2" },
+  { id: "e3", currentAssetPath: "Assets/Art/UI/Misc/icon.png",    contentTagKey: "homemap/coinpill", gameObjectPath: "Canvas/Top/CoinPill/icon" },
+  { id: "e4", currentAssetPath: "Assets/Art/UI/Misc/icon.png",    contentTagKey: "homemap/wildpill", gameObjectPath: "Canvas/Bot/WildPill/icon" },
+];
+
+const tests = [
+  ["filename hits one",            () => matchers.filename({name:"chip_01.png"}, elements).length === 1],
+  ["filename hits all duplicates", () => matchers.filename({name:"icon.png"}, elements).length === 2],
+  ["filename miss",                () => matchers.filename({name:"nope.png"}, elements).length === 0],
+  ["subpath empty when flat",      () => matchers.subpath({name:"chip_01.png", relPath:"chip_01.png"}, elements).length === 0],
+  ["subpath hits via path",        () => matchers.subpath({name:"chip_01.png", relPath:"Chips/chip_01.png"}, elements).length === 1],
+  ["contentTag full",              () => matchers.contentTag({name:"chip_01.png"}, elements).length === 1],
+  ["contentTag suffix",            () => matchers.contentTag({name:"coinpill.png"}, elements).length === 1],
+  ["gameObjectName",               () => matchers.gameObjectName({name:"chapterchip_1.png"}, elements).length === 1],
+  ["chain: filename first",        () => matchFile({name:"chip_01.png"}, elements).matcherName === "filename"],
+  ["chain: fallback to tag",       () => matchFile({name:"coinpill.png"}, elements, ["filename","subpath","contentTag"]).matcherName === "contentTag"],
+  ["chain: no match",              () => matchFile({name:"random.png"}, elements).matcherName === null],
+];
+
+const out = document.getElementById("out");
+let pass = 0, fail = 0;
+for (const [name, fn] of tests) {
+  let ok = false; let err = "";
+  try { ok = fn(); } catch (e) { err = e.message; }
+  out.innerHTML += `<div class="${ok ? 'pass' : 'fail'}">${ok ? '✓' : '✗'} ${name}${err ? ' — ' + err : ''}</div>`;
+  ok ? pass++ : fail++;
+}
+out.innerHTML += `<hr><b>${pass} passed · ${fail} failed</b>`;
+</script>
+</body></html>
