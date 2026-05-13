@@ -1,0 +1,90 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>pending-store tests</title>
+<style>
+  body { font: 13px monospace; background: #111; color: #eee; padding: 12px; }
+  .pass { color: #6f6; } .fail { color: #f66; } pre { white-space: pre-wrap; }
+</style></head><body>
+<h1>pending-store.js tests</h1>
+<div id="results"></div>
+<script type="module">
+import { createPendingStore } from "./pending-store.js";
+
+const results = document.getElementById("results");
+// Supports both sync and async test functions; runs tests sequentially.
+async function check(name, fn) {
+  try {
+    await fn();
+    results.insertAdjacentHTML("beforeend", `<div class="pass">✓ ${name}</div>`);
+  } catch (e) {
+    results.insertAdjacentHTML("beforeend", `<div class="fail">✗ ${name}<pre>${e.stack || e}</pre></div>`);
+  }
+}
+function assertEqual(a, b, msg) { if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(`${msg}: ${JSON.stringify(a)} !== ${JSON.stringify(b)}`); }
+function assertTrue(v, msg) { if (!v) throw new Error(msg || "expected truthy"); }
+function assertNull(v, msg) { if (v != null) throw new Error(`${msg}: expected null, got ${JSON.stringify(v)}`); }
+
+// Mock fetch globally
+const fetchCalls = [];
+let fetchShouldReject = false;
+window.fetch = async (url, opts) => {
+  fetchCalls.push({ url, body: opts?.body });
+  if (fetchShouldReject) throw new Error("mock fetch error");
+  return { ok: true, json: async () => ({ ok: true }) };
+};
+
+// Use a large debounceMs for non-flush tests so their timers never fire during the flush tests.
+const NO_FLUSH = 60_000;
+
+await check("setRectPatch then getRectPatch returns the patch", () => {
+  const s = createPendingStore({ apiBaseUrl: "", debounceMs: NO_FLUSH });
+  s.setRectPatch("el-1", { hasAnchoredX: true, anchoredX: 12 });
+  assertEqual(s.getRectPatch("el-1"), { hasAnchoredX: true, anchoredX: 12 }, "patch retained");
+});
+
+await check("setRectPatch_then_undo_clearsPatch", () => {
+  const s = createPendingStore({ apiBaseUrl: "", debounceMs: NO_FLUSH });
+  s.setRectPatch("el-1", { hasAnchoredX: true, anchoredX: 12 });
+  assertTrue(s.canUndo(), "canUndo after one set");
+  s.undo();
+  assertNull(s.getRectPatch("el-1"), "patch cleared after undo");
+  assertTrue(s.canRedo(), "canRedo after undo");
+});
+
+await check("undo_then_redo_restoresPatch", () => {
+  const s = createPendingStore({ apiBaseUrl: "", debounceMs: NO_FLUSH });
+  s.setRectPatch("el-1", { hasAnchoredX: true, anchoredX: 12 });
+  s.undo();
+  s.redo();
+  assertEqual(s.getRectPatch("el-1"), { hasAnchoredX: true, anchoredX: 12 }, "redo restores");
+});
+
+await check("setRectPatch_truncatesRedoStack", () => {
+  const s = createPendingStore({ apiBaseUrl: "", debounceMs: NO_FLUSH });
+  s.setRectPatch("el-1", { hasAnchoredX: true, anchoredX: 10 });
+  s.undo();
+  assertTrue(s.canRedo(), "canRedo after undo");
+  s.setRectPatch("el-1", { hasAnchoredX: true, anchoredX: 99 });
+  assertTrue(!s.canRedo(), "redo branch truncated by new set");
+});
+
+await check("flush_debounces_with_zero_delay_flushes_synchronously_ish", async () => {
+  fetchCalls.length = 0;
+  const s = createPendingStore({ apiBaseUrl: "/api", debounceMs: 5 });
+  for (let i = 0; i < 5; i++) s.setRectPatch("e-debounce", { hasAnchoredX: true, anchoredX: i });
+  await new Promise(r => setTimeout(r, 30));
+  // Exactly one POST for the final value
+  assertEqual(fetchCalls.length, 1, "single debounced flush");
+  const body = JSON.parse(fetchCalls[0].body);
+  assertEqual(body.rect.anchoredX, 4, "flush sends last value");
+});
+
+await check("flush_failure_keepsLocalPatches", async () => {
+  fetchCalls.length = 0;
+  fetchShouldReject = true;
+  const s = createPendingStore({ apiBaseUrl: "/api", debounceMs: 5 });
+  s.setRectPatch("e-failure", { hasAnchoredX: true, anchoredX: 7 });
+  await new Promise(r => setTimeout(r, 30));
+  fetchShouldReject = false;
+  assertEqual(s.getRectPatch("e-failure"), { hasAnchoredX: true, anchoredX: 7 }, "patch retained after flush error");
+});
+</script></body></html>
