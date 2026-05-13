@@ -192,8 +192,9 @@ export function renderLayout() {
     </div>
     <div class="canvas-area">
       <div class="canvas-frame-wrap" style="aspect-ratio:${refW}/${refH}; position:relative;">
-        <div class="canvas-frame" id="v3-canvas-frame" data-canvas-root></div>
-        <div id="layout-edit-layer"></div>
+        <div class="canvas-frame" id="v3-canvas-frame" data-canvas-root>
+          <div id="layout-edit-layer"></div>
+        </div>
       </div>
     </div>
     <div class="reset-control" id="reset-control"${selEl && selEl.spriteNative ? '' : ' hidden'}>
@@ -275,11 +276,14 @@ export function renderLayout() {
     }
     div.addEventListener("click", () => {
       state.selectedElementId = e.id;
+      // Render first so #layout-edit-layer is rebuilt; then mount Moveable on
+      // the new layer (otherwise renderLayout's dispose() blows away what we
+      // just mounted).
+      window.__v3_renderAll();
       const editor = getEditor();
       if (editor) editor.select(e.id);
       const resetCtrl = document.getElementById("reset-control");
       if (resetCtrl) resetCtrl.hidden = !e.spriteNative;
-      window.__v3_renderAll();
     });
     frame.appendChild(div);
   }
@@ -351,11 +355,12 @@ export function renderLayout() {
       }
       div.addEventListener("click", () => {
         state.selectedElementId = e.id;
+        // Render first (rebuilds #layout-edit-layer), then mount Moveable.
+        window.__v3_renderAll();
         const editor = getEditor();
         if (editor) editor.select(e.id);
         const resetCtrl = document.getElementById("reset-control");
         if (resetCtrl) resetCtrl.hidden = !e.spriteNative;
-        window.__v3_renderAll();
       });
       frame.appendChild(div);
     }
