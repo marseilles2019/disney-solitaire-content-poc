@@ -451,6 +451,7 @@ class AdminHandler(BaseHTTPRequestHandler):
         mime = {".html": "text/html; charset=utf-8",
                 ".css": "text/css; charset=utf-8",
                 ".js": "application/javascript; charset=utf-8",
+                ".mjs": "application/javascript; charset=utf-8",
                 ".md": "text/plain; charset=utf-8"}.get(ext, "application/octet-stream")
         data = full.read_bytes()
         self.send_response(200)
@@ -478,6 +479,7 @@ class AdminHandler(BaseHTTPRequestHandler):
         mime = {".html": "text/html; charset=utf-8",
                 ".css": "text/css; charset=utf-8",
                 ".js": "application/javascript; charset=utf-8",
+                ".mjs": "application/javascript; charset=utf-8",
                 ".svg": "image/svg+xml"}.get(ext, "application/octet-stream")
         data = full.read_bytes()
         self.send_response(200)
@@ -503,6 +505,7 @@ class AdminHandler(BaseHTTPRequestHandler):
         mime = {".html": "text/html; charset=utf-8",
                 ".css": "text/css; charset=utf-8",
                 ".js": "application/javascript; charset=utf-8",
+                ".mjs": "application/javascript; charset=utf-8",
                 ".svg": "image/svg+xml"}.get(ext, "application/octet-stream")
         data = full.read_bytes()
         self.send_response(200)
