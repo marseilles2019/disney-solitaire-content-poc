@@ -1,6 +1,6 @@
 import { state, isDirty } from "./state.js";
 import { STATE_PRESETS, resolvePreset, findActivePreset } from "./state-presets.js";
-import { manifest, prefabUsage, findWorldForPrefab, findComponentLabel, isModalPrefabName } from "./manifest-store.js";
+import { manifest, prefabUsage, findWorldForPrefab, findComponentLabel, isModalPrefabName, findThumbnail } from "./manifest-store.js";
 
 function escape(s) {
   return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -64,11 +64,22 @@ function badges(c) {
   ].join('');
 }
 
+function renderThumb(src) {
+  const t = findThumbnail(src.path);
+  if (t) {
+    return `<span class="v3-comp-thumb" aria-hidden="true"><img src="/api/v2/thumbnail/${escape(t.file)}" alt="" width="32" height="32" loading="lazy"></span>`;
+  }
+  const w = findWorldForPrefab(src.path);
+  const icon = w?.icon || "📦";
+  return `<span class="v3-comp-thumb" aria-hidden="true"><span class="v3-comp-thumb-fallback">${escape(icon)}</span></span>`;
+}
+
 function renderComponentRow(src, i, activePreset) {
   const c = counts(src);
   const active = (i === state.selectedSourceIdx && state.overlaySourceIdx == null && !activePreset) ? " active" : "";
   const locked = c.replaceable === 0 && c.dirty === 0 ? " v3-sidebar-locked" : "";
   return `<div class="collection-nav-item v2-sidebar-row${active}${locked}" data-idx="${i}" title="${escape(src.displayName)} · ${c.total} 个元素">
+    ${renderThumb(src)}
     <span class="v2-sidebar-name v2-sidebar-name-bilingual">${bilingualLabel(src.displayName, src.path)}</span>
     ${badges(c)}
     <span class="v2-sidebar-count">${c.total}</span>

@@ -3,6 +3,7 @@
 
 let _manifest = null;
 let _prefabUsage = null;
+let _thumbnails = null;
 
 export async function loadManifest() {
   const [mResp, pResp] = await Promise.all([
@@ -11,6 +12,15 @@ export async function loadManifest() {
   ]);
   _manifest = await mResp.json();
   _prefabUsage = pResp.ok ? await pResp.json() : {};
+}
+
+export async function loadThumbnails() {
+  try {
+    const r = await fetch("/api/v2/thumbnails-manifest", { cache: "no-store" });
+    _thumbnails = r.ok ? ((await r.json()).thumbnails || {}) : {};
+  } catch {
+    _thumbnails = {};
+  }
 }
 
 export function manifest() { return _manifest; }
@@ -31,6 +41,10 @@ export function findWorldForPrefab(prefabPath) {
 export function findComponentLabel(prefabPath) {
   const comps = _manifest?.components || [];
   return comps.find(c => c.prefab === prefabPath);
+}
+
+export function findThumbnail(prefabPath) {
+  return _thumbnails ? (_thumbnails[prefabPath] || null) : null;
 }
 
 export function findStatesByWorld(worldId) {
