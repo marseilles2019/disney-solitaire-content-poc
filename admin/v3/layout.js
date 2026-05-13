@@ -178,9 +178,10 @@ export function renderLayout() {
         div.classList.add("el-text");
         const cleanText = String(e.text.content).replace(/<[^>]+>/g, "");
         div.textContent = cleanText;
-        const scaleFactor = (e.text.fontSize > 0) ? (e.text.fontSize / refW) * 100 : 0;
-        if (scaleFactor > 0) {
-          div.style.fontSize = `clamp(7px, ${scaleFactor}cqi, 32px)`;
+        // Same scaling rule as scene branch: cssPx = (unityFontSize / refW) * frameDisplayWidth.
+        const pxSize = (e.text.fontSize > 0) ? (e.text.fontSize / refW) * frameDisplayWidth : 0;
+        if (pxSize > 0) {
+          div.style.fontSize = `${Math.max(4, pxSize).toFixed(2)}px`;
         }
         if (e.text.colorHex) div.style.color = e.text.colorHex;
         const a = String(e.text.alignment || "Center").toLowerCase();
