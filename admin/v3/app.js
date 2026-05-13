@@ -4,6 +4,7 @@
 import { state, dirtyCount } from "./state.js";
 import { api } from "./api.js";
 import { persistDirty, loadPersistedDirty, clearPersistedDirty, restoredDirty } from "./state.js";
+import { loadManifest } from "./manifest-store.js";
 import "./sources.js";
 import "./list.js";
 import "./layout.js";
@@ -65,6 +66,7 @@ function showToast(msg, kind = "info") {
 }
 
 async function init() {
+  await loadManifest();  // NEW — must load before refresh() so renderers can read manifest
   document.getElementById("v3-refresh-btn").addEventListener("click", refresh);
   await refresh();
   const persisted = loadPersistedDirty();
