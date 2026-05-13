@@ -69,6 +69,10 @@ function renderThumb(src) {
   if (t) {
     return `<span class="v3-comp-thumb" aria-hidden="true"><img src="/api/v2/thumbnail/${escape(t.file)}" alt="" width="32" height="32" loading="lazy"></span>`;
   }
+  // Fallback contract (spec §4.3):
+  //   single-world prefab → world icon (🏠/🎮/...)
+  //   cross-world prefab  → 🌐 (findWorldForPrefab returns {id:"_cross", icon:"🌐"})
+  //   orphan / no usage   → 📦
   const w = findWorldForPrefab(src.path);
   const icon = w?.icon || "📦";
   return `<span class="v3-comp-thumb" aria-hidden="true"><span class="v3-comp-thumb-fallback">${escape(icon)}</span></span>`;
