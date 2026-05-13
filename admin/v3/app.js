@@ -10,6 +10,7 @@ import "./list.js";
 import "./layout.js";
 import "./detail.js";
 import "./batch.js";
+import { renderSettingsPanel, wireSettingsPanel } from "./settings.js";
 
 document.getElementById("v3-save-btn").addEventListener("click", async () => {
   if (state.dirty.size === 0) return;
@@ -68,6 +69,15 @@ function showToast(msg, kind = "info") {
 async function init() {
   await Promise.all([loadManifest(), loadThumbnails()]);  // both must finish before first render; parallel fetch
   document.getElementById("v3-refresh-btn").addEventListener("click", refresh);
+  // v6.3 — settings panel + gear toggle
+  const host = document.getElementById("v3-settings-host");
+  if (host) {
+    host.innerHTML = renderSettingsPanel();
+    wireSettingsPanel();
+    const toggle = document.getElementById("v3-settings-toggle");
+    const panel = document.getElementById("v3-settings-panel");
+    if (toggle && panel) toggle.addEventListener("click", () => { panel.hidden = !panel.hidden; });
+  }
   await refresh();
   const persisted = loadPersistedDirty();
   if (persisted.length > 0) promptRestoreDirty(persisted);

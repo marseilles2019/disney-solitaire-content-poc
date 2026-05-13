@@ -1,5 +1,6 @@
 import { state, selectedElement, selectedSource, persistDirty, isReplaceableEl, stateBadge } from "./state.js";
 import { api } from "./api.js";
+import { atlasesForAsset, spriteAtlasAutoRepackEnabled } from "./manifest-store.js";
 
 function escape(s) {
   return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -106,6 +107,7 @@ export function renderDetail() {
         </div>
       </details>
     </div>
+    ${renderAtlasBadge(e)}
     ${cta}`;
 
   wireDetail(e);
@@ -118,6 +120,24 @@ function friendlyAssetLabel(e) {
   if (p.startsWith("(runtime")) return "运行时生成的纹理";
   if (p.startsWith("Assets/")) return p.replace(/^Assets\//, "");
   return p;
+}
+
+function renderAtlasBadge(e) {
+  if (!e.currentAssetPath) return "";
+  const atlases = atlasesForAsset(e.currentAssetPath);
+  if (atlases.length === 0) return "";
+  const names = atlases.map(p => p.split("/").pop().replace(/\.spriteatlas$/, ""));
+  const willRepack = spriteAtlasAutoRepackEnabled();
+  const hint = willRepack
+    ? "改图后 Apply 会自动 repack 该 atlas · 改图会顺带影响 atlas 内其他 sprite 的 batching 表现"
+    : "该 PNG 属于 atlas · 当前 manifest 关闭了自动 repack（CI 接管）";
+  return `
+    <div class="detail-row atlas-info" title="${willRepack ? '替换 PNG 时 Apply 会自动 repack 这些 atlas' : 'manifest.conventions.spriteAtlasAutoRepack = false'}">
+      <span class="k">🧩 Part of atlas</span>
+      <span class="v">${names.map(n => `<code>${escape(n)}</code>`).join(", ")}</span>
+    </div>
+    <div class="detail-hint">${escape(hint)}</div>
+  `;
 }
 
 function readonlyMessage(e) {

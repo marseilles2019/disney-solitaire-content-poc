@@ -4,14 +4,17 @@
 let _manifest = null;
 let _prefabUsage = null;
 let _thumbnails = null;
+let _atlasMembership = null;
 
 export async function loadManifest() {
-  const [mResp, pResp] = await Promise.all([
-    fetch("/api/v2/manifest", { cache: "no-store" }),
-    fetch("/api/v2/prefab-usage", { cache: "no-store" }),
+  const [mResp, pResp, aResp] = await Promise.all([
+    fetch("/api/v2/manifest",      { cache: "no-store" }),
+    fetch("/api/v2/prefab-usage",  { cache: "no-store" }),
+    fetch("/api/v6/sprite-atlas-membership", { cache: "no-store" }),
   ]);
-  _manifest = await mResp.json();
-  _prefabUsage = pResp.ok ? await pResp.json() : {};
+  _manifest      = await mResp.json();
+  _prefabUsage   = pResp.ok ? await pResp.json() : {};
+  _atlasMembership = aResp.ok ? await aResp.json() : {};
 }
 
 export async function loadThumbnails() {
@@ -58,4 +61,14 @@ export function isModalPrefabName(displayName) {
 
 export function writePathPrefix() {
   return _manifest?.conventions?.writePathPrefix || "Assets/Art/";
+}
+
+export function atlasMembership() { return _atlasMembership || {}; }
+export function atlasesForAsset(assetPath) {
+  if (!assetPath || !_atlasMembership) return [];
+  return _atlasMembership[assetPath] || [];
+}
+export function spriteAtlasAutoRepackEnabled() {
+  // Default ON if manifest missing the field (v5 back-compat)
+  return _manifest?.conventions?.spriteAtlasAutoRepack !== false;
 }

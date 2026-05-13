@@ -839,3 +839,69 @@ body { overflow: hidden; }
   opacity: 0.6;
   user-select: none;
 }
+
+/* v6.3 — atlas membership badge */
+.detail-row.atlas-info {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 8px 0 4px 0;
+  padding: 6px 10px;
+  background: var(--surface-alt, #f6f0e3);
+  border-left: 3px solid #c69a47;
+  border-radius: 4px;
+  font-size: 13px;
+}
+.detail-row.atlas-info .k { color: var(--text-dim); }
+.detail-row.atlas-info code {
+  background: rgba(0,0,0,0.06);
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-family: var(--font-mono, monospace);
+}
+.detail-hint {
+  color: var(--text-dim);
+  font-size: 11px;
+  margin: 0 0 8px 4px;
+}
+/* Settings panel */
+.v3-settings-toggle {
+  background: transparent;
+  border: 1px solid var(--border, #d8c3a0);
+  border-radius: 4px;
+  padding: 4px 10px;
+  cursor: pointer;
+  margin-right: 8px;
+}
+.v3-settings-toggle:hover { background: rgba(0,0,0,0.04); }
+.settings-panel {
+  position: absolute;
+  top: 50px;
+  right: 16px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #d8c3a0);
+  border-radius: 6px;
+  padding: 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  z-index: 100;
+  min-width: 280px;
+  max-width: 360px;
+}
+.settings-panel h3 { margin: 0 0 12px 0; font-size: 14px; }
+.settings-action {
+  background: #f6f0e3;
+  border: 1px solid #c69a47;
+  border-radius: 4px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  width: 100%;
+}
+.settings-action:hover { background: #efe6cf; }
+.settings-action:disabled { opacity: 0.6; cursor: not-allowed; }
+.settings-hint {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 8px;
+  line-height: 1.4;
+}
