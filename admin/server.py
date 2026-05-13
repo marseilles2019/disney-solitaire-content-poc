@@ -284,6 +284,8 @@ class AdminHandler(BaseHTTPRequestHandler):
             return self.serve_v2_manifest()
         if path == "/api/v2/prefab-usage":
             return self.serve_v2_prefab_usage()
+        if path == "/api/v6/sprite-atlas-membership":
+            return self.serve_v6_atlas_membership()
         self.send_error(404, "API not found")
 
     def serve_manifest(self):
@@ -624,6 +626,16 @@ class AdminHandler(BaseHTTPRequestHandler):
         except json.JSONDecodeError:
             return self.send_json(200, {})
 
+    def serve_v6_atlas_membership(self):
+        """Returns the membership map written by Unity. Empty {} if no atlases / file missing."""
+        p = self.data_root / "sprite-atlas-membership.json"
+        if not p.exists():
+            return self.send_json(200, {})
+        try:
+            return self.send_json(200, json.loads(p.read_text()))
+        except json.JSONDecodeError as e:
+            return self.send_error_json(500, f"sprite-atlas-membership.json invalid: {e}", "invalid_json")
+
     def handle_v2_queue_changes(self):
         body = self.read_json_body()
         changes = body.get("changes", [])
@@ -659,6 +671,13 @@ class AdminHandler(BaseHTTPRequestHandler):
         p.write_text(json.dumps({"changes": []}, indent=2) + "\n")
         return self.send_json(200, {"ok": True})
 
+    def handle_force_repack_all(self):
+        """Writes a flag file; ContentForceRepackMenu (Editor) picks it up and runs PackAllAtlases."""
+        flag = self.data_root / "force-repack.flag"
+        self.data_root.mkdir(parents=True, exist_ok=True)
+        flag.write_text(datetime.utcnow().isoformat() + "Z\n")
+        return self.send_json(200, {"ok": True, "flag": str(flag.name)})
+
     # ── POST ────────────────────────────────────────────────────────────
 
     def do_POST(self):
@@ -678,6 +697,8 @@ class AdminHandler(BaseHTTPRequestHandler):
             return self.handle_v4_replace()
         if self.path == "/api/v4/publish":
             return self.handle_v4_publish()
+        if self.path == "/api/v6/force-repack-all":
+            return self.handle_force_repack_all()
         self.send_error(404, "API not found")
 
     def handle_upload(self):
