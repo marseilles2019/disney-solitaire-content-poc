@@ -53,38 +53,24 @@ export function renderLayout() {
       <span class="v3-legend-hint">点击元素查看详情</span>
     </div>`;
 
-  // State preset picker (B): predefined scene+overlay combos for common game states
+  // Unified state picker — chips, one per named preset. Combines scene + overlay
+  // in one click. For ad-hoc combinations not covered by a preset, user picks
+  // scene via sidebar (overlay stays null until a preset matches again).
+  const ov = overlaySource();
   const activePreset = findActivePreset(state.snapshot, state.selectedSourceIdx, state.overlaySourceIdx);
-  const availablePresets = STATE_PRESETS.filter((p) => {
-    const r = resolvePreset(p, state.snapshot);
-    return r.sourceIdx >= 0 && (p.overlayRe == null || r.overlayIdx >= 0);
-  });
   const statePicker = `
     <div class="v3-state-picker">
       <label>🎬 状态：</label>
-      <select id="v3-state-select">
-        <option value="">— 自定义 —</option>
-        ${availablePresets.map((p) =>
-          `<option value="${p.id}"${activePreset?.id === p.id ? " selected" : ""}>${escape(p.label)}</option>`
-        ).join("")}
-      </select>
-      <span class="v3-state-hint">${activePreset ? "" : "（手动切场景/弹窗也算自定义）"}</span>
-    </div>`;
-
-  // Overlay picker: clickable chips for modal/overlay/popup/toast prefabs
-  const overlayCandidates = sources
-    .map((s, i) => ({ s, i }))
-    .filter(({ s }) => isOverlayCandidate(s));
-  const ov = overlaySource();
-  const overlayPicker = `
-    <div class="v3-overlay-picker">
-      <label>叠加弹窗：</label>
-      <div class="v3-overlay-chips">
-        ${overlayCandidates.map(({ s, i }) =>
-          `<button class="v3-overlay-chip${i === state.overlaySourceIdx ? ' active' : ''}" data-idx="${i}" title="${escape(s.displayName)} · ${s.elements.length} 元素">${escape(s.displayName.replace(/\.uGUI$/, ''))}</button>`
-        ).join("")}
+      <div class="v3-state-chips">
+        ${STATE_PRESETS.map((p) => {
+          const r = resolvePreset(p, state.snapshot);
+          const available = r.sourceIdx >= 0 && (p.overlayRe == null || r.overlayIdx >= 0);
+          if (!available) return "";
+          const cls = activePreset?.id === p.id ? " active" : "";
+          return `<button class="v3-state-chip${cls}" data-preset="${p.id}" title="${escape(p.label)}">${escape(p.label)}</button>`;
+        }).join("")}
+        ${!activePreset ? `<span class="v3-state-custom">· 自定义（边栏自由切）</span>` : ""}
       </div>
-      ${ov ? `<button id="v3-overlay-close" title="关闭弹窗">✕</button>` : ""}
     </div>`;
 
   root.innerHTML = `
@@ -94,7 +80,6 @@ export function renderLayout() {
       <div class="pane-header-meta">${src.elements.length} 个元素 · ${srcReplaceable} 可替换${ov ? ` · 叠 ${ov.elements.length} 元素` : ""}</div>
     </div>
     ${statePicker}
-    ${overlayPicker}
     ${emptyStateBanner}
     ${legend}
     <div class="canvas-area">
@@ -107,34 +92,21 @@ export function renderLayout() {
       <div class="mono">${escape(canvas.renderMode)} · 参考分辨率 ${refW}×${refH}</div>
     </details>`;
 
-  // Wire state preset picker — apply preset to source + overlay in one shot
-  const statesel = document.getElementById("v3-state-select");
-  statesel?.addEventListener("change", (ev) => {
-    const preset = STATE_PRESETS.find((p) => p.id === ev.target.value);
-    if (!preset) return;  // "自定义" — do nothing, user picks source/overlay manually
-    const r = resolvePreset(preset, state.snapshot);
-    if (r.sourceIdx >= 0) {
-      state.selectedSourceIdx = r.sourceIdx;
-      // Pick first replaceable element of new source as selection
-      const src = state.snapshot.sources[r.sourceIdx];
-      const firstReplaceable = src.elements.find((e) => e.resourceState && e.resourceState !== "builtin_placeholder");
-      state.selectedElementId = firstReplaceable?.id ?? src.elements[0]?.id ?? null;
-    }
-    state.overlaySourceIdx = r.overlayIdx ?? null;
-    window.__v3_renderAll();
-  });
-
-  // Wire overlay chips — click to toggle; active chip → clear; other → switch
-  document.querySelectorAll(".v3-overlay-chip").forEach((chip) => {
+  // Wire state preset chips — single click applies scene + overlay in one shot
+  document.querySelectorAll(".v3-state-chip").forEach((chip) => {
     chip.addEventListener("click", () => {
-      const idx = parseInt(chip.dataset.idx, 10);
-      state.overlaySourceIdx = state.overlaySourceIdx === idx ? null : idx;
+      const preset = STATE_PRESETS.find((p) => p.id === chip.dataset.preset);
+      if (!preset) return;
+      const r = resolvePreset(preset, state.snapshot);
+      if (r.sourceIdx >= 0) {
+        state.selectedSourceIdx = r.sourceIdx;
+        const src = state.snapshot.sources[r.sourceIdx];
+        const firstReplaceable = src.elements.find((e) => e.resourceState && e.resourceState !== "builtin_placeholder");
+        state.selectedElementId = firstReplaceable?.id ?? src.elements[0]?.id ?? null;
+      }
+      state.overlaySourceIdx = r.overlayIdx ?? null;
       window.__v3_renderAll();
     });
-  });
-  document.getElementById("v3-overlay-close")?.addEventListener("click", () => {
-    state.overlaySourceIdx = null;
-    window.__v3_renderAll();
   });
 
   const frame = document.getElementById("v3-canvas-frame");

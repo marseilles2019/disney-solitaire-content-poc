@@ -646,85 +646,61 @@ body { overflow: hidden; }
 .v3-legend-swatch-dual   { background: #f43f5e; }
 .v3-legend-swatch-locked { background: rgba(255,255,255,0.06); }
 
-/* State preset picker — dropdown for whole-state combos (scene + overlay) */
+/* Unified state picker — single chip row replaces former dropdown + overlay
+   picker. Each chip = a named UI state (scene + optional overlay combo).
+   Click chip → scene + overlay applied in one shot. */
 .v3-state-picker {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px 4px;
-  font-size: 11px;
-  color: var(--text-muted);
-}
-.v3-state-picker label { color: var(--text-dim); }
-.v3-state-picker select {
-  flex: 1;
-  background: var(--surface);
-  color: var(--text);
-  border: 1px solid var(--border-strong);
-  border-radius: 6px;
-  padding: 4px 8px;
-  font-size: 11px;
-  font-family: inherit;
-  cursor: pointer;
-}
-.v3-state-picker select:focus { outline: 1px solid var(--purple); }
-.v3-state-hint { font-size: 10px; color: var(--text-dim); font-style: italic; }
-
-/* Overlay picker — clickable chips for each modal/overlay candidate */
-.v3-overlay-picker {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  padding: 4px 16px 10px;
+  padding: 8px 16px 10px;
   background: rgba(255,255,255,0.02);
   border-bottom: 1px solid var(--border);
   font-size: 11px;
   color: var(--text-muted);
 }
-.v3-overlay-picker label {
+.v3-state-picker label {
   color: var(--text-dim);
   padding-top: 4px;
   flex-shrink: 0;
 }
-.v3-overlay-chips {
+.v3-state-chips {
   display: flex;
   flex-wrap: wrap;
   gap: 5px;
   flex: 1;
+  align-items: center;
 }
-.v3-overlay-chip {
+.v3-state-chip {
   background: var(--surface);
   color: var(--text-muted);
   border: 1px solid var(--border-strong);
-  padding: 3px 9px;
-  border-radius: 5px;
-  font-size: 10px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.1s, color 0.1s, border-color 0.1s;
+  transition: background 0.1s, color 0.1s, border-color 0.1s, transform 0.05s;
+  white-space: nowrap;
 }
-.v3-overlay-chip:hover {
+.v3-state-chip:hover {
   color: var(--text);
   border-color: var(--purple);
 }
-.v3-overlay-chip.active {
-  background: color-mix(in srgb, var(--purple) 22%, transparent);
+.v3-state-chip:active { transform: scale(0.96); }
+.v3-state-chip.active {
+  background: color-mix(in srgb, var(--purple) 25%, transparent);
   color: var(--purple);
   border-color: var(--purple);
   font-weight: 700;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--purple) 22%, transparent);
 }
-.v3-overlay-picker button#v3-overlay-close {
-  background: transparent;
-  border: 1px solid var(--border-strong);
-  color: var(--text-muted);
-  width: 22px;
-  height: 22px;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 11px;
-  flex-shrink: 0;
+.v3-state-custom {
+  font-size: 10px;
+  color: var(--text-dim);
+  font-style: italic;
+  margin-left: 6px;
 }
-.v3-overlay-picker button#v3-overlay-close:hover { color: var(--rose); border-color: var(--rose); }
 
 /* List sections — separate "弹窗" + "场景" groups when overlay active */
 .list-section { margin-bottom: 10px; }

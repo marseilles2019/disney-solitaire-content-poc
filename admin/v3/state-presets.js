@@ -7,17 +7,18 @@
 // a 'locked' variant"). Today's MVP is purely about which scene + which modal
 // to render.
 
+// Short labels — icon already conveys scene; redundant prefix removed.
 export const STATE_PRESETS = [
-  { id: "home",          label: "🏠 主页",            sourceRe: /^HomeMap/i,   overlayRe: null },
-  { id: "home_chapter",  label: "🏠 主页 · 新章节",    sourceRe: /^HomeMap/i,   overlayRe: /^ChapterIntroOverlay/i },
-  { id: "home_settings", label: "🏠 主页 · 设置",      sourceRe: /^HomeMap/i,   overlayRe: /^SettingsOverlay/i },
-  { id: "home_levelintro", label: "🏠 主页 · 关卡介绍", sourceRe: /^HomeMap/i,   overlayRe: /^LevelIntroModal/i },
-  { id: "gameplay",      label: "🎮 游戏中",          sourceRe: /^Gameplay/i,  overlayRe: null },
-  { id: "gameplay_pause",label: "🎮 游戏中 · 暂停",    sourceRe: /^Gameplay/i,  overlayRe: /^SettingsOverlay/i },
-  { id: "gameplay_won",  label: "🎮 游戏中 · 通关",    sourceRe: /^Gameplay/i,  overlayRe: /^LevelCompleteModal/i },
-  { id: "gameplay_lost", label: "🎮 游戏中 · 失败",    sourceRe: /^Gameplay/i,  overlayRe: /^GameOverModal/i },
-  { id: "gameplay_toast",label: "🎮 游戏中 · 提示",    sourceRe: /^Gameplay/i,  overlayRe: /^Toast/i },
-  { id: "memory_lane",   label: "🏠 主页 · 记忆回廊",  sourceRe: /^HomeMap/i,   overlayRe: /^MemoryLaneModal/i },
+  { id: "home",            label: "🏠 主页",       sourceRe: /^HomeMap/i,   overlayRe: null },
+  { id: "home_chapter",    label: "🏠 新章节",     sourceRe: /^HomeMap/i,   overlayRe: /^ChapterIntroOverlay/i },
+  { id: "home_levelintro", label: "🏠 关卡介绍",   sourceRe: /^HomeMap/i,   overlayRe: /^LevelIntroModal/i },
+  { id: "home_settings",   label: "🏠 设置",       sourceRe: /^HomeMap/i,   overlayRe: /^SettingsOverlay/i },
+  { id: "memory_lane",     label: "🏠 记忆回廊",   sourceRe: /^HomeMap/i,   overlayRe: /^MemoryLaneModal/i },
+  { id: "gameplay",        label: "🎮 游戏中",     sourceRe: /^Gameplay/i,  overlayRe: null },
+  { id: "gameplay_pause",  label: "🎮 暂停",       sourceRe: /^Gameplay/i,  overlayRe: /^SettingsOverlay/i },
+  { id: "gameplay_won",    label: "🎮 通关",       sourceRe: /^Gameplay/i,  overlayRe: /^LevelCompleteModal/i },
+  { id: "gameplay_lost",   label: "🎮 失败",       sourceRe: /^Gameplay/i,  overlayRe: /^GameOverModal/i },
+  { id: "gameplay_toast",  label: "🎮 提示",       sourceRe: /^Gameplay/i,  overlayRe: /^Toast/i },
 ];
 
 // Resolve a preset against the current snapshot. Returns { sourceIdx, overlayIdx }
