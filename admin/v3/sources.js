@@ -5,6 +5,51 @@ function escape(s) {
   return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+// 中文标签 — 组件 prefab 的人话名字。未在表里的 prefab 仍只显示英文 (degraded
+// gracefully). dev 加新 prefab 时往这里补一行即可。
+const COMPONENT_ZH = {
+  "CardView":            "扑克牌",
+  "CoinPill":            "金币药丸",
+  "DiscardSlot":         "弃牌堆",
+  "DrawPile":            "抽牌堆",
+  "LevelBadge":          "等级徽章",
+  "PrimaryActionButton": "主操作按钮",
+  "RoundIconButton":     "圆形图标按钮",
+  "SettingsButton":      "设置按钮",
+  "StreakBanner":        "连胜横幅",
+  "WildPill":            "万能牌药丸",
+  "ChapterStrip":        "章节条",
+  "ChapterTitleBadge":   "章节标题徽章",
+  "HourlyBonusButton":   "小时奖励按钮",
+  "ProgressBadge":       "进度徽章",
+  "SubSceneNode":        "子场景节点",
+  "SubSceneStage":       "子场景台",
+  "RewardChip":          "奖励 chip",
+  "ChapterChipPrefab":   "章节 chip",
+};
+
+function bilingualLabel(displayName) {
+  // Strip ".uGUI" / ".prefab" suffix from displayName lookup
+  const key = displayName.replace(/\.(uGUI|prefab)$/i, "");
+  const zh = COMPONENT_ZH[key];
+  return zh
+    ? `<span class="v3-comp-zh">${escape(zh)}</span><span class="v3-comp-en">${escape(key)}</span>`
+    : escape(displayName);
+}
+
+function bilingualPresetLabel(preset, resolved) {
+  // Chinese label from preset definition + English subtitle from resolved
+  // scene/overlay source names. Example: '🏠 主页 · 新章节' + 'HomeMap + ChapterIntro'.
+  const sceneSrc = state.snapshot.sources[resolved.sourceIdx];
+  const overlaySrc = resolved.overlayIdx != null && resolved.overlayIdx >= 0
+    ? state.snapshot.sources[resolved.overlayIdx]
+    : null;
+  const sceneShort = (sceneSrc?.displayName || "").replace(/\.(uGUI|unity)$/i, "");
+  const overlayShort = (overlaySrc?.displayName || "").replace(/\.(uGUI|prefab)$/i, "");
+  const en = overlayShort ? `${sceneShort} + ${overlayShort}` : sceneShort;
+  return `<span class="v3-comp-zh">${escape(preset.label)}</span><span class="v3-comp-en">${escape(en)}</span>`;
+}
+
 function counts(src) {
   const c = { dirty: 0, replaceable: 0, total: src.elements.length, cdn: 0, draft: 0, conflict: 0, locked: 0 };
   for (const e of src.elements) {
@@ -59,7 +104,7 @@ export function renderSources() {
       ? `${c.sceneTotal}+${c.overlayTotal}`
       : `${c.sceneTotal}`;
     return `<div class="collection-nav-item v2-sidebar-row${active}" data-preset="${p.id}" title="${escape(p.label)} · ${countDisplay} 个元素">
-      <span class="v2-sidebar-name">${escape(p.label)}</span>
+      <span class="v2-sidebar-name v2-sidebar-name-bilingual">${bilingualPresetLabel(p, r)}</span>
       ${badges(c)}
       <span class="v2-sidebar-count">${countDisplay}</span>
     </div>`;
@@ -92,7 +137,7 @@ export function renderSources() {
     const active = (i === state.selectedSourceIdx && state.overlaySourceIdx == null && !activePreset) ? " active" : "";
     const locked = c.replaceable === 0 && c.dirty === 0 ? " v3-sidebar-locked" : "";
     return `<div class="collection-nav-item v2-sidebar-row${active}${locked}" data-idx="${i}" title="${escape(s.displayName)} · ${c.total} 个元素">
-      <span class="v2-sidebar-name">${escape(s.displayName)}</span>
+      <span class="v2-sidebar-name v2-sidebar-name-bilingual">${bilingualLabel(s.displayName)}</span>
       ${badges(c)}
       <span class="v2-sidebar-count">${c.total}</span>
     </div>`;

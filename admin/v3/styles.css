@@ -382,6 +382,37 @@ body { overflow: hidden; }
 
 /* ── V3-T12 — empty-state guidance + replaceable badges (P0-1, P0-2, P1-1, P1-2) ── */
 
+/* Sidebar bilingual labels — Chinese primary, English subtitle dim/smaller */
+.v2-sidebar-name-bilingual {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.15;
+  min-width: 0;
+  flex: 1;
+}
+.v3-comp-zh {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.v3-comp-en {
+  color: var(--text-dim);
+  font-size: 9px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.v2-sidebar-row.active .v3-comp-zh { color: var(--purple); }
+.v2-sidebar-row.active .v3-comp-en { color: color-mix(in srgb, var(--purple) 60%, transparent); }
+
 /* Sources sidebar — replaceable badge + lock */
 .v3-sidebar-repl {
   background: var(--emerald);
