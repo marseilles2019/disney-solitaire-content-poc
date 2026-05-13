@@ -594,6 +594,10 @@ class AdminHandler(BaseHTTPRequestHandler):
             return self.handle_v2_queue_changes()
         if self.path == "/api/v2/clear-pending":
             return self.handle_v2_clear_pending()
+        if self.path == "/api/v4/replace":
+            return self.handle_v4_replace()
+        if self.path == "/api/v4/publish":
+            return self.handle_v4_publish()
         self.send_error(404, "API not found")
 
     def handle_upload(self):
@@ -676,6 +680,142 @@ class AdminHandler(BaseHTTPRequestHandler):
             "newCommit": hash_out.strip(),
             "newVersion": new_version or "<unchanged>",
         })
+
+    # ── v4: unified resource management ────────────────────────────────
+
+    def handle_v4_replace(self):
+        """Route a single element replace by computed state. CDN-managed/tagged_unpublished
+        writes to public/assets/...; static_only appends to pending-changes.json."""
+        body = self.read_json_body()
+        element_id = body.get("elementId", "")
+        bytes_b64 = body.get("newBytesBase64", "")
+        preferred = body.get("preferredPath")  # "cdn" | "assets" | None
+
+        # Look up element by scanning snapshot
+        snap_p = self.data_root / "snapshot.json"
+        if not snap_p.exists():
+            return self.send_error_json(404, "snapshot missing", "missing_snapshot")
+        snap = json.loads(snap_p.read_text())
+        content_map = self._load_content_map_safely()
+        manifest_version = self._load_manifest_version_safely()
+        public_root = (self.repo_root / PUBLIC_DIR_NAME).resolve()
+
+        el = None
+        for src in snap.get("sources", []):
+            for e in src.get("elements", []):
+                if e.get("id") == element_id:
+                    el = e
+                    break
+            if el:
+                break
+        if not el:
+            return self.send_error_json(404, f"element {element_id!r} not found", "element_not_found")
+
+        enrich = enrich_element_state(el, content_map, public_root, manifest_version)
+        state = enrich["resourceState"]
+
+        try:
+            decoded = base64.b64decode(bytes_b64, validate=True)
+        except Exception as e:
+            return self.send_error_json(400, f"base64 decode: {e}", "invalid_base64")
+        if len(decoded) > MAX_UPLOAD_BYTES:
+            return self.send_error_json(413, "exceeds 10 MB", "size_too_large")
+
+        if state == "builtin_placeholder":
+            return self.send_error_json(403, "element is locked (builtin placeholder)", "locked")
+
+        if state == "dual" and not preferred:
+            return self.send_error_json(409, "dual state — preferredPath required (cdn | assets)", "dual_needs_preference")
+
+        # Decide route
+        route = preferred if state == "dual" else ("cdn" if state in ("cdn_managed", "tagged_unpublished") else "assets")
+
+        if route == "cdn":
+            cdn_rel = enrich.get("cdnAssetPath")
+            if not cdn_rel:
+                return self.send_error_json(500, "no cdnAssetPath resolved", "no_cdn_path")
+            # Safety: must start with assets/
+            if not cdn_rel.startswith("assets/") or ".." in cdn_rel.split("/"):
+                return self.send_error_json(400, "unsafe cdn path", "invalid_target")
+            target = (self.repo_root / PUBLIC_DIR_NAME / cdn_rel).resolve()
+            public_resolved = (self.repo_root / PUBLIC_DIR_NAME).resolve()
+            if public_resolved not in target.parents:
+                return self.send_error_json(400, "outside public/", "invalid_target")
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(decoded)
+            return self.send_json(200, {"ok": True, "route": "cdn", "targetPath": cdn_rel, "sizeBytes": len(decoded)})
+
+        if route == "assets":
+            static_path = enrich.get("staticAssetPath")
+            if not static_path:
+                return self.send_error_json(500, "no staticAssetPath resolved", "no_static_path")
+            if not static_path.startswith(V2_TARGET_PATH_PREFIX):
+                return self.send_error_json(400, f"target must start with {V2_TARGET_PATH_PREFIX}", "invalid_target")
+            if ".." in static_path.split("/"):
+                return self.send_error_json(400, "directory traversal forbidden", "invalid_target")
+            # Append to pending-changes.json (Unity will apply later via watch mode or manual menu)
+            pending_path = self.data_root / "pending-changes.json"
+            pending_path.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                doc = json.loads(pending_path.read_text()) if pending_path.exists() else {"changes": []}
+            except json.JSONDecodeError:
+                doc = {"changes": []}
+            # Replace existing entry with same id if any
+            doc["changes"] = [c for c in doc.get("changes", []) if c.get("id") != element_id]
+            doc["changes"].append({
+                "id": element_id,
+                "actionType": "replace_asset",
+                "targetAssetPath": static_path,
+                "newBytesBase64": bytes_b64,
+            })
+            pending_path.write_text(json.dumps(doc, indent=2) + "\n")
+            return self.send_json(200, {"ok": True, "route": "assets", "targetPath": static_path, "sizeBytes": len(decoded)})
+
+        return self.send_error_json(500, f"unhandled route {route!r}", "internal")
+
+    def handle_v4_publish(self):
+        """Run CDN publish (bump manifest + git add + commit + push) if anything queued
+        in public/assets/ since last commit. Assets queue: report count; Unity watch
+        mode handles actual write."""
+        # CDN: detect dirty in public/
+        code, porcelain, _ = run_git(self.repo_root, "status", "--porcelain", "--", str(self.repo_root / PUBLIC_DIR_NAME))
+        cdn_dirty = bool(porcelain.strip())
+
+        # Assets: count pending
+        pending_path = self.data_root / "pending-changes.json"
+        assets_queued = 0
+        if pending_path.exists():
+            try:
+                doc = json.loads(pending_path.read_text())
+                assets_queued = len(doc.get("changes", []))
+            except json.JSONDecodeError:
+                pass
+
+        result = {"cdnPublished": False, "cdnDirty": cdn_dirty, "assetsQueued": assets_queued}
+
+        if cdn_dirty:
+            if os.environ.get("CONTENT_ADMIN_DRY_RUN") == "1":
+                new_version = bump_manifest_version(self.repo_root / PUBLIC_DIR_NAME / "manifest.json")
+                result.update({"cdnPublished": True, "cdnNewCommit": "<dry-run>", "cdnNewVersion": new_version, "dryRun": True})
+            else:
+                new_version = bump_manifest_version(self.repo_root / PUBLIC_DIR_NAME / "manifest.json")
+                code, _, err = run_git(self.repo_root, "add", "public/")
+                if code != 0:
+                    return self.send_error_json(500, f"git add: {err}", "git_add_failed")
+                code, _, _ = run_git(self.repo_root, "diff", "--cached", "--quiet")
+                if code == 0:
+                    result.update({"cdnPublished": False, "cdnNewVersion": new_version, "noChanges": True})
+                else:
+                    code, _, err = run_git(self.repo_root, "commit", "-m", f"art: v4 publish · {new_version}")
+                    if code != 0:
+                        return self.send_error_json(500, f"git commit: {err}", "git_commit_failed")
+                    code, _, err = run_git(self.repo_root, "push", "origin", "main")
+                    if code != 0:
+                        return self.send_error_json(500, f"git push: {err}", "git_push_failed")
+                    _, hash_out, _ = run_git(self.repo_root, "rev-parse", "HEAD")
+                    result.update({"cdnPublished": True, "cdnNewCommit": hash_out.strip(), "cdnNewVersion": new_version})
+
+        return self.send_json(200, result)
 
 
 # ────────────────────────────────────────────────────────────────────────────

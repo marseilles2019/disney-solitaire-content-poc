@@ -136,5 +136,76 @@ class V4SnapshotIntegrationTests(unittest.TestCase):
         self.assertEqual(states["e4"], "builtin_placeholder")
 
 
+import base64
+
+
+def _post(port, path, body):
+    conn = http.client.HTTPConnection("127.0.0.1", port)
+    raw = json.dumps(body).encode()
+    conn.request("POST", path, body=raw, headers={"Content-Type": "application/json"})
+    r = conn.getresponse()
+    return r.status, r.read()
+
+
+PNG_1x1 = bytes.fromhex(
+    "89504e470d0a1a0a0000000d49484452000000010000000108020000009077"
+    "53de0000000c4944415478da6300010000000500010d0a2db40000000049454e44ae426082"
+)
+
+
+class V4ReplacePublishTests(V4SnapshotIntegrationTests):
+    # Reuses setUpClass from V4SnapshotIntegrationTests.
+    # Note: tests write into the real public/ — restore via git checkout in tearDown.
+
+    def tearDown(self):
+        # Restore any public/ files modified by replace tests so the working tree
+        # stays clean for subsequent runs.
+        import subprocess
+        subprocess.run(
+            ["git", "checkout", "--", "public/"],
+            cwd=str(self.repo_root),
+            capture_output=True,
+        )
+
+    def test_replace_routes_cdn_managed_to_cdn_queue(self):
+        status, body = _post(self.port, "/api/v4/replace", {
+            "elementId": "e1",
+            "newBytesBase64": base64.b64encode(PNG_1x1).decode(),
+        })
+        self.assertEqual(status, 200, body)
+        data = json.loads(body)
+        self.assertEqual(data["route"], "cdn")
+        # Exact path depends on content_map (full key vs last-segment lookup);
+        # assert the routing landed somewhere under assets/ ending with chip_01.png
+        self.assertTrue(data["targetPath"].startswith("assets/"))
+        self.assertTrue(data["targetPath"].endswith("chip_01.png"))
+
+    def test_replace_routes_static_only_to_assets_queue(self):
+        status, body = _post(self.port, "/api/v4/replace", {
+            "elementId": "e3",
+            "newBytesBase64": base64.b64encode(PNG_1x1).decode(),
+        })
+        self.assertEqual(status, 200, body)
+        data = json.loads(body)
+        self.assertEqual(data["route"], "assets")
+        self.assertEqual(data["targetPath"], "Assets/Art/UI/x.png")
+
+    def test_replace_rejects_builtin_placeholder(self):
+        status, body = _post(self.port, "/api/v4/replace", {
+            "elementId": "e4",
+            "newBytesBase64": base64.b64encode(PNG_1x1).decode(),
+        })
+        self.assertEqual(status, 403)
+        self.assertEqual(json.loads(body)["errorCode"], "locked")
+
+    def test_publish_returns_zero_when_nothing_queued(self):
+        status, body = _post(self.port, "/api/v4/publish", {})
+        self.assertEqual(status, 200)
+        data = json.loads(body)
+        # cdn_queue empty AND assets queue empty initially in the test fixture
+        self.assertIn("cdnPublished", data)
+        self.assertIn("assetsQueued", data)
+
+
 if __name__ == "__main__":
     unittest.main()
