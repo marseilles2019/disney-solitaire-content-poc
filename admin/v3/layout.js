@@ -1,12 +1,5 @@
 import { state, selectedSource, overlaySource, isDirty, stateBadge } from "./state.js";
 
-// Detect modal/overlay/popup prefabs by name heuristic — these are
-// candidates for "render on top of current scene".
-const OVERLAY_NAME_RE = /modal|overlay|popup|toast|dialog/i;
-function isOverlayCandidate(src) {
-  return src.type === "prefab" && OVERLAY_NAME_RE.test(src.displayName);
-}
-
 function escape(s) {
   return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }

@@ -1,40 +1,17 @@
 import { state, isDirty } from "./state.js";
 import { STATE_PRESETS, resolvePreset, findActivePreset } from "./state-presets.js";
+import { findComponentLabel, isModalPrefabName } from "./manifest-store.js";
 
 function escape(s) {
   return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-// 中文标签 — 组件 prefab 的人话名字。未在表里的 prefab 仍只显示英文 (degraded
-// gracefully). dev 加新 prefab 时往这里补一行即可。
-const COMPONENT_ZH = {
-  "CardView":            "扑克牌",
-  "CoinPill":            "金币药丸",
-  "DiscardSlot":         "弃牌堆",
-  "DrawPile":            "抽牌堆",
-  "LevelBadge":          "等级徽章",
-  "PrimaryActionButton": "主操作按钮",
-  "RoundIconButton":     "圆形图标按钮",
-  "SettingsButton":      "设置按钮",
-  "StreakBanner":        "连胜横幅",
-  "WildPill":            "万能牌药丸",
-  "ChapterStrip":        "章节条",
-  "ChapterTitleBadge":   "章节标题徽章",
-  "HourlyBonusButton":   "小时奖励按钮",
-  "ProgressBadge":       "进度徽章",
-  "SubSceneNode":        "子场景节点",
-  "SubSceneStage":       "子场景台",
-  "RewardChip":          "奖励 chip",
-  "ChapterChipPrefab":   "章节 chip",
-};
-
-function bilingualLabel(displayName) {
-  // Strip ".uGUI" / ".prefab" suffix from displayName lookup
-  const key = displayName.replace(/\.(uGUI|prefab)$/i, "");
-  const zh = COMPONENT_ZH[key];
-  return zh
-    ? `<span class="v3-comp-zh">${escape(zh)}</span><span class="v3-comp-en">${escape(key)}</span>`
-    : escape(displayName);
+function bilingualLabel(displayName, sourcePath) {
+  const comp = findComponentLabel(sourcePath);
+  if (comp) {
+    return `<span class="v3-comp-zh">${escape(comp.label)}</span><span class="v3-comp-en">${escape(comp.labelEn || displayName.replace(/\.(uGUI|prefab)$/i, ""))}</span>`;
+  }
+  return escape(displayName);
 }
 
 function bilingualPresetLabel(preset, resolved) {
@@ -129,16 +106,15 @@ export function renderSources() {
   // ── ▼ 组件 (prefabs) — exclude modals/overlays (already accessible via
   //    ▼ 状态 preset rows). Leaves the truly reusable atoms: cards, pills,
   //    badges, buttons, strips. ──
-  const OVERLAY_NAME_RE = /modal|overlay|popup|toast|dialog/i;
   const prefabs = sources
     .map((s, i) => ({ s, i }))
-    .filter(({ s }) => s.type === "prefab" && !OVERLAY_NAME_RE.test(s.displayName));
+    .filter(({ s }) => s.type === "prefab" && !isModalPrefabName(s.displayName));
   const prefabRows = prefabs.map(({ s, i }) => {
     const c = counts(s);
     const active = (i === state.selectedSourceIdx && state.overlaySourceIdx == null && !activePreset) ? " active" : "";
     const locked = c.replaceable === 0 && c.dirty === 0 ? " v3-sidebar-locked" : "";
     return `<div class="collection-nav-item v2-sidebar-row${active}${locked}" data-idx="${i}" title="${escape(s.displayName)} · ${c.total} 个元素">
-      <span class="v2-sidebar-name v2-sidebar-name-bilingual">${bilingualLabel(s.displayName)}</span>
+      <span class="v2-sidebar-name v2-sidebar-name-bilingual">${bilingualLabel(s.displayName, s.path)}</span>
       ${badges(c)}
       <span class="v2-sidebar-count">${c.total}</span>
     </div>`;
