@@ -81,13 +81,17 @@ function wireToolbar() {
     resetBtn.addEventListener("click", () => {
       const sel = selectedElement();
       if (!sel) return;
-      const targetEl = document.querySelector(`[data-element-id="${CSS.escape(sel.id)}"]`);
-      const currentWidthPx = targetEl ? (parseFloat(targetEl.style.width) || 0) : 0;
-      const scale = window._lastCanvasScale || 1;
-      const widthUnity = currentWidthPx > 0 ? currentWidthPx / scale : (sel.rect?.worldWidth ?? 100);
+      // Preserve the element's current Unity-reference width. Prefer the live
+      // store patch (if user already resized), else the snapshot's rect.width
+      // (the exporter's source-of-truth in reference px). Do NOT read
+      // targetEl.style.width — it's a percentage string and parseFloat would
+      // produce a number that's not in px or reference units.
+      const store = getStore();
+      const cur = store?.getRectPatch(sel.id) ?? null;
+      const widthUnity = (cur && cur.hasWidth) ? cur.width : (sel.rect?.width ?? 0);
+      if (widthUnity <= 0) return;
       const heightUnity = window._layoutEdit?.computeNativeRatioHeight(widthUnity, sel.spriteNative);
       if (heightUnity == null) return;
-      const store = getStore();
       if (!store) return;
       store.setRectPatch(sel.id, {
         hasAnchoredX: false, anchoredX: 0,
