@@ -110,6 +110,29 @@ class RectValidationTests(unittest.TestCase):
         ok, err = validate_rect_patch_body(body)
         self.assertTrue(ok, err)
 
+    def test_non_dict_body(self):
+        ok, err = validate_rect_patch_body("not a dict")
+        self.assertFalse(ok)
+        self.assertIn("object", err.lower())
+        ok, err = validate_rect_patch_body(42)
+        self.assertFalse(ok)
+
+    def test_bool_rejected_as_number(self):
+        # Python bool is a subclass of int — must not be accepted as a numeric value
+        body = self._ok()
+        body["rect"]["anchoredX"] = True
+        ok, err = validate_rect_patch_body(body)
+        self.assertFalse(ok)
+        self.assertIn("anchoredX", err)
+
+    def test_missing_individual_flag_key(self):
+        # Only the flag is dropped; the value is still present
+        body = self._ok()
+        del body["rect"]["hasWidth"]
+        ok, err = validate_rect_patch_body(body)
+        self.assertFalse(ok)
+        self.assertIn("hasWidth", err)
+
 
 import threading, http.client, time, os
 import server as srv
@@ -147,7 +170,11 @@ class RectEndpointHttpTests(unittest.TestCase):
         conn.request("POST", "/api/pending-changes/rect", body,
                      {"Content-Type": "application/json"})
         resp = conn.getresponse()
-        self.assertEqual(resp.status, 200, resp.read())
+        raw = resp.read()
+        self.assertEqual(resp.status, 200, raw)
+        resp_body = json.loads(raw)
+        self.assertTrue(resp_body.get("ok"), f"expected ok=true, got: {resp_body}")
+        self.assertEqual(resp_body.get("queued"), "src#0/Canvas/Foo", "queued id mismatch")
 
         pending = json.loads((self.data_root / "pending-changes.json").read_text())
         self.assertEqual(len(pending["changes"]), 1)
@@ -160,6 +187,14 @@ class RectEndpointHttpTests(unittest.TestCase):
                      {"Content-Type": "application/json"})
         resp = conn.getresponse()
         self.assertEqual(resp.status, 400)
+
+    def test_post_malformed_json_returns_400(self):
+        conn = http.client.HTTPConnection("127.0.0.1", self.port, timeout=3)
+        conn.request("POST", "/api/pending-changes/rect", "{not valid json",
+                     {"Content-Type": "application/json"})
+        resp = conn.getresponse()
+        self.assertEqual(resp.status, 400)
+        self.assertIn(b"invalid JSON", resp.read())
 
 
 if __name__ == "__main__":

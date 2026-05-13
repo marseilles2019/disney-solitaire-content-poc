@@ -761,7 +761,10 @@ class AdminHandler(BaseHTTPRequestHandler):
         try:
             body = self.read_json_body()
         except ValueError as e:
-            return self.send_error_json(413, str(e), "size_too_large")
+            msg = str(e)
+            if msg == "size_too_large":
+                return self.send_error_json(413, "body too large", "body_too_large")
+            return self.send_error_json(400, f"invalid JSON: {msg}", "invalid_json")
         except Exception as e:
             return self.send_error_json(400, f"invalid JSON: {e}", "invalid_json")
         ok, err = validate_rect_patch_body(body)
