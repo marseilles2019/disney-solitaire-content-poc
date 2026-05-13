@@ -14,6 +14,7 @@ from __future__ import annotations
 import base64
 import fcntl
 import json
+import math
 import os
 import re
 import subprocess
@@ -117,6 +118,38 @@ def with_pending_changes_lock(pending_path, mutate_fn):
             fh.write(json.dumps(doc, indent=2) + "\n")
         finally:
             fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+
+
+def validate_rect_patch_body(body):
+    """Return (ok: bool, error_message: str). Pure — no I/O."""
+    if not isinstance(body, dict):
+        return False, "body must be an object"
+    if not body.get("id"):
+        return False, "id is required"
+    rect = body.get("rect")
+    if not isinstance(rect, dict):
+        return False, "rect is required"
+    flag_value_pairs = [
+        ("hasAnchoredX", "anchoredX"),
+        ("hasAnchoredY", "anchoredY"),
+        ("hasWidth",     "width"),
+        ("hasHeight",    "height"),
+    ]
+    for flag, value in flag_value_pairs:
+        if flag not in rect:
+            return False, f"rect.{flag} missing"
+        if value not in rect:
+            return False, f"rect.{value} missing"
+        v = rect[value]
+        if not isinstance(v, (int, float)) or isinstance(v, bool):
+            return False, f"rect.{value} must be a number"
+        if not math.isfinite(float(v)):
+            return False, f"rect.{value} must be finite (no NaN/Inf)"
+    if rect["width"] < 0:
+        return False, "rect.width must be >= 0"
+    if rect["height"] < 0:
+        return False, "rect.height must be >= 0"
+    return True, ""
 
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -723,6 +756,26 @@ class AdminHandler(BaseHTTPRequestHandler):
         flag.write_text(datetime.utcnow().isoformat() + "Z\n")
         return self.send_json(200, {"ok": True, "flag": str(flag.name)})
 
+    def handle_pending_changes_rect(self):
+        """POST /api/pending-changes/rect — queue a set_rect_transform patch."""
+        try:
+            body = self.read_json_body()
+        except ValueError as e:
+            return self.send_error_json(413, str(e), "size_too_large")
+        except Exception as e:
+            return self.send_error_json(400, f"invalid JSON: {e}", "invalid_json")
+        ok, err = validate_rect_patch_body(body)
+        if not ok:
+            return self.send_error_json(400, err, "invalid_rect_patch")
+        change = {
+            "id": body["id"],
+            "actionType": "set_rect_transform",
+            "rect": body["rect"],
+        }
+        pending_path = self.data_root / "pending-changes.json"
+        with_pending_changes_lock(pending_path, lambda doc: upsert_pending_change(doc, change))
+        return self.send_json(200, {"ok": True, "queued": change["id"]})
+
     # ── POST ────────────────────────────────────────────────────────────
 
     def do_POST(self):
@@ -744,6 +797,8 @@ class AdminHandler(BaseHTTPRequestHandler):
             return self.handle_v4_publish()
         if self.path == "/api/v6/force-repack-all":
             return self.handle_force_repack_all()
+        if self.path == "/api/pending-changes/rect":
+            return self.handle_pending_changes_rect()
         self.send_error(404, "API not found")
 
     def handle_upload(self):
