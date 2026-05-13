@@ -584,3 +584,50 @@ body { overflow: hidden; }
   cursor: not-allowed;
 }
 .v3-restore-actions button#v3-restore-discard:hover { border-color: var(--rose); color: var(--rose); }
+
+/* ── v4 state palette ───────────────────────────────────────────── */
+/* Sidebar breakdown badges per source */
+.v3-state-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  margin-left: 2px;
+}
+.v3-state-cdn      { background: color-mix(in srgb, var(--emerald) 22%, transparent); color: var(--emerald); }
+.v3-state-draft    { background: color-mix(in srgb, var(--amber)   22%, transparent); color: var(--amber); }
+.v3-state-conflict { background: color-mix(in srgb, var(--rose)    22%, transparent); color: var(--rose); }
+
+/* Detail — state line (above 资源 section) */
+.v3-detail-state {
+  font-size: 12px;
+  margin: 10px 0 12px;
+  padding: 6px 10px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 6px;
+}
+
+/* Detail — dual-state conflict warning */
+.detail-warning {
+  margin-top: 16px;
+  padding: 10px;
+  background: color-mix(in srgb, var(--rose) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--rose) 45%, transparent);
+  color: var(--rose);
+  border-radius: 8px;
+  font-size: 11px;
+}
+
+/* Layout — 5-state element colors */
+.el-cdn    { background: #10b981; }
+.el-draft  { background: #f59e0b; }
+.el-static { background: #2563eb; }
+.el-dual   { background: #f43f5e; }
+.el-locked { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.08); }
+
+/* Layout — legend swatches matching 5 element states */
+.v3-legend-swatch-cdn    { background: #10b981; }
+.v3-legend-swatch-draft  { background: #f59e0b; }
+.v3-legend-swatch-static { background: #2563eb; }
+.v3-legend-swatch-dual   { background: #f43f5e; }
+.v3-legend-swatch-locked { background: rgba(255,255,255,0.06); }

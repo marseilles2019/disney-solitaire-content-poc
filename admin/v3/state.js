@@ -27,6 +27,26 @@ export function dirtyCount() {
   return state.dirty.size;
 }
 
+// ── v4 — resource state helpers ──────────────────────────────────────
+// Backend enriches every element with `resourceState` ∈ {
+//   "cdn_managed", "tagged_unpublished", "static_only", "dual", "builtin_placeholder"
+// }. Frontend treats any state ≠ builtin_placeholder as replaceable.
+
+export function isReplaceableEl(e) {
+  return e && e.resourceState && e.resourceState !== "builtin_placeholder";
+}
+
+export function stateBadge(e) {
+  const map = {
+    cdn_managed:        { icon: "🟢", label: "已上架",   color: "var(--emerald)" },
+    tagged_unpublished: { icon: "🟡", label: "草稿",     color: "var(--amber)" },
+    static_only:        { icon: "🔵", label: "工程资源", color: "var(--accent)" },
+    dual:               { icon: "⚠",  label: "冲突",     color: "var(--rose)" },
+    builtin_placeholder:{ icon: "🔒", label: "占位",     color: "var(--text-dim)" },
+  };
+  return map[e?.resourceState] || map.builtin_placeholder;
+}
+
 // ── Persistence (P1-5) ───────────────────────────────────────────────
 // localStorage key. Stores ONLY the lightweight dirty descriptors
 // (id, targetAssetPath, byteSize, filename, sourcePath).

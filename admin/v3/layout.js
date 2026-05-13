@@ -1,4 +1,4 @@
-import { state, selectedSource, isDirty } from "./state.js";
+import { state, selectedSource, isDirty, stateBadge } from "./state.js";
 
 function escape(s) {
   return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -13,10 +13,11 @@ export function renderLayout() {
   const refW = canvas.referenceWidth;
   const refH = canvas.referenceHeight;
 
-  // Detect 0 replaceable globally
+  // Detect 0 replaceable globally — v4: state-driven (not boolean isReplaceable)
   const sources = state.snapshot.sources;
-  const globalReplaceable = sources.reduce((n, s) => n + s.elements.filter(e => e.isReplaceable).length, 0);
-  const srcReplaceable = src.elements.filter(e => e.isReplaceable).length;
+  const globalReplaceable = sources.reduce(
+    (n, s) => n + s.elements.filter(e => e.resourceState && e.resourceState !== "builtin_placeholder").length, 0);
+  const srcReplaceable = src.elements.filter(e => e.resourceState && e.resourceState !== "builtin_placeholder").length;
 
   const emptyStateBanner = globalReplaceable === 0
     ? `<div class="v3-empty-banner">
@@ -36,10 +37,12 @@ export function renderLayout() {
 
   const legend = `
     <div class="v3-layout-legend">
-      <span class="v3-legend-chip"><span class="v3-legend-swatch v3-legend-swatch-repl"></span>✓ 可替换</span>
-      <span class="v3-legend-chip"><span class="v3-legend-swatch v3-legend-swatch-tagged"></span>🔒 Unity 自带</span>
-      <span class="v3-legend-chip"><span class="v3-legend-swatch v3-legend-swatch-null"></span>○ 未指定</span>
-      <span class="v3-legend-hint">悬停元素查看详情 · 点击选中</span>
+      <span class="v3-legend-chip"><span class="v3-legend-swatch v3-legend-swatch-cdn"></span>🟢 已上架</span>
+      <span class="v3-legend-chip"><span class="v3-legend-swatch v3-legend-swatch-draft"></span>🟡 草稿</span>
+      <span class="v3-legend-chip"><span class="v3-legend-swatch v3-legend-swatch-static"></span>🔵 工程资源</span>
+      <span class="v3-legend-chip"><span class="v3-legend-swatch v3-legend-swatch-dual"></span>⚠ 冲突</span>
+      <span class="v3-legend-chip"><span class="v3-legend-swatch v3-legend-swatch-locked"></span>🔒 占位</span>
+      <span class="v3-legend-hint">点击元素查看详情</span>
     </div>`;
 
   root.innerHTML = `
@@ -68,12 +71,8 @@ export function renderLayout() {
     div.className = `el ${elKind(e)}${e.id === state.selectedElementId ? ' selected' : ''}${isDirty(e.id) ? ' dirty' : ''}`;
     div.dataset.id = e.id;
     const friendlyName = (e.gameObjectPath || "").split("/").pop() || e.id;
-    const statusText = e.isReplaceable
-      ? "✓ 可替换"
-      : e.isBuiltin ? "🔒 Unity 自带"
-      : e.currentAssetPath === "(null)" ? "○ 未指定图片"
-      : "🔒 不可替换";
-    div.title = `${friendlyName} · ${statusText}`;
+    const badge = stateBadge(e);
+    div.title = `${friendlyName} · ${badge.icon} ${badge.label}`;
 
     // worldX is screen-pixel center; convert to top-left % within refW×refH
     const leftPct = ((e.rect.worldX - e.rect.worldWidth / 2) / refW) * 100;
@@ -94,8 +93,12 @@ export function renderLayout() {
 }
 
 function elKind(e) {
-  if (e.isReplaceable) return "el-replaceable";
-  if (e.isBuiltin || e.contentTagKey) return "el-tagged";
-  return "el-null";
+  switch (e.resourceState) {
+    case "cdn_managed":         return "el-cdn";
+    case "tagged_unpublished":  return "el-draft";
+    case "static_only":         return "el-static";
+    case "dual":                return "el-dual";
+    default:                    return "el-locked";
+  }
 }
 window.renderLayout = renderLayout;

@@ -1,4 +1,4 @@
-import { state, selectedElement, selectedSource, persistDirty } from "./state.js";
+import { state, selectedElement, selectedSource, persistDirty, isReplaceableEl, stateBadge } from "./state.js";
 import { api } from "./api.js";
 
 function escape(s) {
@@ -12,7 +12,6 @@ export function renderDetail() {
   const e = selectedElement();
   if (!e) { pane.innerHTML = `<div style="padding:40px;color:var(--text-dim);">选择一个元素以查看详情</div>`; return; }
 
-  const isReplaceable = e.isReplaceable;
   const thumbSrc = e.thumbnailGuid ? api.thumbUrl(e.thumbnailGuid) : null;
   const thumbHtml = thumbSrc
     ? `<img src="${thumbSrc}" style="width:60%;aspect-ratio:1;border-radius:8px;">`
@@ -26,19 +25,29 @@ export function renderDetail() {
   // Friendly asset display: hide Resources/unity_builtin_extra: prefix
   const friendlyAsset = friendlyAssetLabel(e);
 
+  // v4 — resource state line + state-aware CTA
+  const badge = stateBadge(e);
+  const versionSuffix = (e.cdnAssetVersion && e.resourceState === "cdn_managed") ? ` · v${escape(e.cdnAssetVersion)}` : "";
+  const stateLine = `<div class="v3-detail-state" style="color:${badge.color}"><b>${badge.icon} ${badge.label}</b>${versionSuffix}</div>`;
+
   let cta;
   if (pendingDrop) {
     cta = renderConfirmCard(e);
-  } else if (isReplaceable) {
+  } else if (!isReplaceableEl(e)) {
+    cta = `<div class="detail-readonly">🔒 ${escape(readonlyMessage(e))}</div>`;
+  } else if (e.resourceState === "dual") {
+    const warn = e.warnings?.[0] || "ContentTag 与 Assets/Art/ 同时存在 · 替换前请联系 dev 解除一边";
+    cta = `<div class="detail-warning">⚠ ${escape(warn)}</div>`;
+  } else {
+    const targetHint = (e.resourceState === "cdn_managed" || e.resourceState === "tagged_unpublished")
+      ? `→ 上架到 CDN (${escape(e.cdnAssetPath || "")})`
+      : `→ 写入工程 (${escape(e.staticAssetPath || e.currentAssetPath)})`;
     cta = `
       <button class="detail-replace-btn" id="v3-replace-btn">📤 替换图片</button>
       <div class="dropzone-hint" id="v3-detail-dropzone">
         <b>或拖一张 PNG/JPG 到这里</b>
-        <div class="dropzone-hint-mini">→ 写入 ${escape(e.currentAssetPath)}</div>
+        <div class="dropzone-hint-mini">${targetHint}</div>
       </div>`;
-  } else {
-    const reasonText = readonlyMessage(e);
-    cta = `<div class="detail-readonly">🔒 ${escape(reasonText)}</div>`;
   }
 
   pane.innerHTML = `
@@ -49,6 +58,7 @@ export function renderDetail() {
       <span class="v2-component-badge v2-component-${e.componentType.toLowerCase()}">${e.componentType}</span>
       ${e.contentTagKey ? `<span class="v2-tag-badge">tag: ${escape(e.contentTagKey)}</span>` : ''}
     </div>
+    ${stateLine}
     <div class="detail-section">
       <div class="detail-section-title">资源</div>
       <div class="detail-kv">
@@ -156,18 +166,35 @@ function cancelPending() {
   window.__v3_renderAll();
 }
 
-function applyPending(e) {
-  state.dirty.set(e.id, {
-    targetAssetPath: e.currentAssetPath,
-    newBytesBase64: pendingDrop.base64,
-    previewObjectUrl: pendingDrop.objectUrl,  // intentionally don't revoke — used for live preview
-    byteSize: pendingDrop.byteSize,
-    filename: pendingDrop.file.name,
-  });
-  pendingDrop = null;  // don't revoke; ownership transferred to dirty map
-  persistDirty();
-  updateSaveBtn();
-  window.__v3_renderAll();
+async function applyPending(e) {
+  // v4 — route via /api/v4/replace so backend decides CDN-write vs Assets-queue.
+  // The dirty entry stores `route` so save flow (Task 5) can group by destination.
+  try {
+    const r = await fetch("/api/v4/replace", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        elementId: e.id,
+        newBytesBase64: pendingDrop.base64,
+      }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || `replace ${r.status}`);
+    state.dirty.set(e.id, {
+      targetAssetPath: data.targetPath,
+      route: data.route,                    // "cdn" | "assets"
+      newBytesBase64: pendingDrop.base64,   // kept for batch flow re-send
+      previewObjectUrl: pendingDrop.objectUrl,  // intentionally don't revoke — used for live preview
+      byteSize: pendingDrop.byteSize,
+      filename: pendingDrop.file.name,
+    });
+    pendingDrop = null;  // ownership transferred to dirty map
+    persistDirty();
+    updateSaveBtn();
+    window.__v3_renderAll();
+  } catch (err) {
+    alert("替换失败: " + err.message);
+  }
 }
 
 function updateSaveBtn() {
