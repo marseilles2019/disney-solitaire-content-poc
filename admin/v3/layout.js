@@ -79,14 +79,17 @@ export function renderLayout() {
 
   const frame = document.getElementById("v3-canvas-frame");
 
+  // State focus rule: when an overlay is active, scene elements belong to
+  // "other states" (shared backdrop). Skip rendering them entirely — only
+  // the canvas-frame's cream gradient remains as visual orientation, and
+  // the overlay-backdrop dims it further.
+  if (ov) {
+    // skip scene rendering — fall through to overlay block
+  } else {
   for (const e of src.elements) {
     if (!e.rect) continue;
     const div = document.createElement("div");
-    // When an overlay is active, scene elements belong to "other states"
-    // (shared backdrop) — visually muted and made non-interactive so the
-    // user focuses on the overlay's editable elements.
-    const ctxMuted = ov ? " el-context-muted" : "";
-    div.className = `el ${elKind(e)}${e.id === state.selectedElementId ? ' selected' : ''}${isDirty(e.id) ? ' dirty' : ''}${ctxMuted}`;
+    div.className = `el ${elKind(e)}${e.id === state.selectedElementId ? ' selected' : ''}${isDirty(e.id) ? ' dirty' : ''}`;
     div.dataset.id = e.id;
     const friendlyName = (e.gameObjectPath || "").split("/").pop() || e.id;
     const badge = stateBadge(e);
@@ -108,6 +111,7 @@ export function renderLayout() {
     });
     frame.appendChild(div);
   }
+  }  // end !ov scene-render branch
 
   // ── Overlay rendering — render a popup/modal source on top of main scene
   if (ov) {
