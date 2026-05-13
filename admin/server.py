@@ -222,6 +222,15 @@ class AdminHandler(BaseHTTPRequestHandler):
         raw = self.rfile.read(length)
         return json.loads(raw.decode("utf-8"))
 
+    def _write_path_prefix(self):
+        """Read writePathPrefix from manifest at request time. Falls back to
+        V2_TARGET_PATH_PREFIX constant if manifest missing/invalid."""
+        try:
+            m = json.loads((self.data_root / "manifest.json").read_text())
+            return m.get("conventions", {}).get("writePathPrefix", V2_TARGET_PATH_PREFIX)
+        except Exception:
+            return V2_TARGET_PATH_PREFIX
+
     def log_message(self, format, *args):
         # quieter log; remove default per-request line spam
         sys.stderr.write("[admin] " + format % args + "\n")
@@ -589,12 +598,13 @@ class AdminHandler(BaseHTTPRequestHandler):
         changes = body.get("changes", [])
         if not isinstance(changes, list):
             return self.send_error_json(400, "changes must be array", "invalid_body")
+        write_prefix = self._write_path_prefix()
         for c in changes:
             target = c.get("targetAssetPath", "")
-            if not target.startswith(V2_TARGET_PATH_PREFIX):
+            if not target.startswith(write_prefix):
                 return self.send_error_json(
                     400,
-                    f"targetAssetPath must start with {V2_TARGET_PATH_PREFIX} (got: {target!r})",
+                    f"targetAssetPath must start with {write_prefix} (got: {target!r})",
                     "invalid_target")
             if ".." in target.split("/"):
                 return self.send_error_json(400, "directory traversal forbidden", "invalid_target")
@@ -788,8 +798,9 @@ class AdminHandler(BaseHTTPRequestHandler):
             static_path = enrich.get("staticAssetPath")
             if not static_path:
                 return self.send_error_json(500, "no staticAssetPath resolved", "no_static_path")
-            if not static_path.startswith(V2_TARGET_PATH_PREFIX):
-                return self.send_error_json(400, f"target must start with {V2_TARGET_PATH_PREFIX}", "invalid_target")
+            write_prefix = self._write_path_prefix()
+            if not static_path.startswith(write_prefix):
+                return self.send_error_json(400, f"target must start with {write_prefix}", "invalid_target")
             if ".." in static_path.split("/"):
                 return self.send_error_json(400, "directory traversal forbidden", "invalid_target")
             # Append to pending-changes.json (Unity will apply later via watch mode or manual menu)
