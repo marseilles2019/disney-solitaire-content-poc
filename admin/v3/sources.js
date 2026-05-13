@@ -1,6 +1,6 @@
 import { state, isDirty } from "./state.js";
 import { STATE_PRESETS, resolvePreset, findActivePreset } from "./state-presets.js";
-import { findComponentLabel, isModalPrefabName } from "./manifest-store.js";
+import { manifest, prefabUsage, findWorldForPrefab, findComponentLabel, isModalPrefabName } from "./manifest-store.js";
 
 function escape(s) {
   return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -64,72 +64,117 @@ function badges(c) {
   ].join('');
 }
 
-export function renderSources() {
-  const root = document.getElementById("v3-sources");
-  const sources = state.snapshot.sources;
-  const activePreset = findActivePreset(state.snapshot, state.selectedSourceIdx, state.overlaySourceIdx);
+function renderComponentRow(src, i, activePreset) {
+  const c = counts(src);
+  const active = (i === state.selectedSourceIdx && state.overlaySourceIdx == null && !activePreset) ? " active" : "";
+  const locked = c.replaceable === 0 && c.dirty === 0 ? " v3-sidebar-locked" : "";
+  return `<div class="collection-nav-item v2-sidebar-row${active}${locked}" data-idx="${i}" title="${escape(src.displayName)} · ${c.total} 个元素">
+    <span class="v2-sidebar-name v2-sidebar-name-bilingual">${bilingualLabel(src.displayName, src.path)}</span>
+    ${badges(c)}
+    <span class="v2-sidebar-count">${c.total}</span>
+  </div>`;
+}
 
-  // ── ▼ 状态 (states) — preset-driven nav, replaces former "Scenes" section ──
-  const allPresets = STATE_PRESETS();
-  const availablePresets = allPresets
-    .map(p => ({ p, r: resolvePreset(p, state.snapshot) }))
-    .filter(({ p, r }) => r.sourceIdx >= 0 && (p.overlayPrefabPath == null || r.overlayIdx >= 0));
-
-  const presetRows = availablePresets.map(({ p, r }) => {
+function renderWorldSection(world, sources, allPresets, activePreset) {
+  // State preset rows for this world (use STATE_PRESETS shape — has sceneAssetPath/overlayPrefabPath).
+  const worldPresets = allPresets.filter(p => p.worldId === world.id);
+  const presetRows = worldPresets.map(p => {
+    const r = resolvePreset(p, state.snapshot);
+    if (r.sourceIdx < 0 || (p.overlayPrefabPath && r.overlayIdx < 0)) return "";
     const c = combinedCounts(r.sourceIdx, r.overlayIdx);
     const active = activePreset?.id === p.id ? " active" : "";
-    const countDisplay = c.overlayTotal > 0
-      ? `${c.sceneTotal}+${c.overlayTotal}`
-      : `${c.sceneTotal}`;
+    const countDisplay = c.overlayTotal > 0 ? `${c.sceneTotal}+${c.overlayTotal}` : `${c.sceneTotal}`;
     return `<div class="collection-nav-item v2-sidebar-row${active}" data-preset="${p.id}" title="${escape(p.label)} · ${countDisplay} 个元素">
       <span class="v2-sidebar-name v2-sidebar-name-bilingual">${bilingualPresetLabel(p, r)}</span>
       ${badges(c)}
       <span class="v2-sidebar-count">${countDisplay}</span>
     </div>`;
-  }).join("");
+  }).filter(Boolean).join("");
 
-  // Fallback: scenes with elements but not in any preset (Bootstrap, AtomDemo are 0-element so skip)
-  const presetSceneIdxs = new Set(availablePresets.map(({ r }) => r.sourceIdx));
-  const orphanScenes = sources
-    .map((s, i) => ({ s, i }))
-    .filter(({ s, i }) => s.type === "scene" && s.elements.length > 0 && !presetSceneIdxs.has(i));
-  const orphanRows = orphanScenes.map(({ s, i }) => {
-    const c = counts(s);
-    const active = (i === state.selectedSourceIdx && state.overlaySourceIdx == null && !activePreset) ? " active" : "";
-    return `<div class="collection-nav-item v2-sidebar-row${active}" data-idx="${i}" title="${escape(s.displayName)} · 原始场景">
-      <span class="v2-sidebar-name">🎬 ${escape(s.displayName)}</span>
-      ${badges(c)}
-      <span class="v2-sidebar-count">${c.total}</span>
-    </div>`;
-  }).join("");
+  // Components used in this world only (single-world; cross-world prefabs go to separate bucket).
+  const usage = prefabUsage();
+  const componentsInWorld = [];
+  for (const [prefabPath, entry] of Object.entries(usage)) {
+    const inThisWorld = (entry.usedByScenes || []).some(s => world.scenes.includes(s));
+    const w = findWorldForPrefab(prefabPath);
+    if (inThisWorld && w?.id === world.id) {
+      const src = sources.find(s => s.path === prefabPath);
+      if (src) componentsInWorld.push({ src, i: sources.indexOf(src) });
+    }
+  }
+  const componentRows = componentsInWorld
+    .map(({ src, i }) => renderComponentRow(src, i, activePreset))
+    .join("");
 
-  // ── ▼ 组件 (prefabs) — exclude modals/overlays (already accessible via
-  //    ▼ 状态 preset rows). Leaves the truly reusable atoms: cards, pills,
-  //    badges, buttons, strips. ──
-  const prefabs = sources
-    .map((s, i) => ({ s, i }))
-    .filter(({ s }) => s.type === "prefab" && !isModalPrefabName(s.displayName));
-  const prefabRows = prefabs.map(({ s, i }) => {
-    const c = counts(s);
-    const active = (i === state.selectedSourceIdx && state.overlaySourceIdx == null && !activePreset) ? " active" : "";
-    const locked = c.replaceable === 0 && c.dirty === 0 ? " v3-sidebar-locked" : "";
-    return `<div class="collection-nav-item v2-sidebar-row${active}${locked}" data-idx="${i}" title="${escape(s.displayName)} · ${c.total} 个元素">
-      <span class="v2-sidebar-name v2-sidebar-name-bilingual">${bilingualLabel(s.displayName, s.path)}</span>
-      ${badges(c)}
-      <span class="v2-sidebar-count">${c.total}</span>
-    </div>`;
-  }).join("");
-
-  root.innerHTML = `
+  const totalCount = `${worldPresets.length}+${componentsInWorld.length}`;
+  return `
     <div class="v2-sidebar-section">
-      <div class="v2-sidebar-header">▼ 状态 <span class="v2-sidebar-count-total">${availablePresets.length + orphanScenes.length}</span></div>
+      <div class="v2-sidebar-header">▼ ${escape(world.icon)} ${escape(world.label)}
+        <span class="v2-sidebar-count-total">${totalCount}</span>
+      </div>
       ${presetRows}
-      ${orphanRows}
-    </div>
-    <div class="v2-sidebar-section">
-      <div class="v2-sidebar-header">▼ 组件 <span class="v2-sidebar-count-total">${prefabs.length}</span></div>
-      ${prefabRows}
+      ${componentRows ? `<div class="v3-sidebar-subheader">组件</div>${componentRows}` : ""}
     </div>`;
+}
+
+function renderComponentGroup(label, prefabs, activePreset) {
+  const rows = prefabs.map(({ src, i }) => renderComponentRow(src, i, activePreset)).join("");
+  return `
+    <div class="v2-sidebar-section">
+      <div class="v2-sidebar-header">▼ ${escape(label)} <span class="v2-sidebar-count-total">${prefabs.length}</span></div>
+      ${rows}
+    </div>`;
+}
+
+export function renderSources() {
+  const root = document.getElementById("v3-sources");
+  const sources = state.snapshot.sources;
+  const m = manifest();
+  if (!m || !m.worlds || m.worlds.length === 0) {
+    root.innerHTML = `<div style="padding:16px;color:var(--text-dim);">No worlds in manifest. Configure WebAdminConfig.asset.</div>`;
+    return;
+  }
+
+  const activePreset = findActivePreset(state.snapshot, state.selectedSourceIdx, state.overlaySourceIdx);
+  const allPresets = STATE_PRESETS();
+  const usage = prefabUsage();
+
+  // Per-world sections (states + single-world components nested under each world).
+  const worldSections = m.worlds
+    .map(world => renderWorldSection(world, sources, allPresets, activePreset))
+    .join("");
+
+  // Cross-world components — prefabs used in 2+ worlds.
+  const crossWorldPrefabs = [];
+  for (const prefabPath of Object.keys(usage)) {
+    const w = findWorldForPrefab(prefabPath);
+    if (w?.id === "_cross") {
+      const src = sources.find(s => s.path === prefabPath);
+      if (src) crossWorldPrefabs.push({ src, i: sources.indexOf(src) });
+    }
+  }
+  const crossWorldSection = crossWorldPrefabs.length > 0
+    ? renderComponentGroup("🌐 跨世界", crossWorldPrefabs, activePreset)
+    : "";
+
+  // Orphan components — prefabs not in any world bucket (likely runtime-spawned,
+  // dev forgot to sync prefab-usage). Excludes scenes + modals (modals already
+  // surface via state preset rows).
+  const claimedPrefabPaths = new Set([
+    ...Object.keys(usage),  // anything tracked in prefab-usage is claimed by a world or cross-world
+  ]);
+  const orphanPrefabs = sources
+    .map((s, i) => ({ src: s, i }))
+    .filter(({ src }) =>
+      src.type === "prefab" &&
+      !claimedPrefabPaths.has(src.path) &&
+      !isModalPrefabName(src.displayName)
+    );
+  const orphanSection = orphanPrefabs.length > 0
+    ? renderComponentGroup("📦 未分类", orphanPrefabs, activePreset)
+    : "";
+
+  root.innerHTML = worldSections + crossWorldSection + orphanSection;
 
   // ── click handlers — preset rows apply scene+overlay combo; idx rows = raw source ──
   root.querySelectorAll("[data-preset]").forEach(el => {

@@ -754,3 +754,14 @@ body { overflow: hidden; }
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--purple) 45%, transparent),
               0 12px 32px rgba(0,0,0,0.55);
 }
+
+/* ── V5-T8 — world-grouped sidebar IA ─────────────────────────────── */
+/* Subheader inside a world section separating states from components. */
+.v3-sidebar-subheader {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  padding: 8px 12px 4px;
+  margin-top: 6px;
+}
