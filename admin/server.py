@@ -150,12 +150,16 @@ def enrich_element_state(element: dict, content_map: dict, public_root: Path, ma
     raw_path = element.get("currentAssetPath") or ""
     out: dict = {}
 
-    # Resolve CDN side
+    # Resolve CDN side. ContentTag uses namespace/key (e.g. "chips/chip_01") but
+    # content_map.sprites keys may be just the last segment ("chip_01"). Try full key
+    # first, then last segment, then convention fallback.
     cdn_rel = None
     if tag:
-        cdn_rel = (content_map.get("sprites", {}) or {}).get(tag)
+        sprites = content_map.get("sprites", {}) or {}
+        cdn_rel = sprites.get(tag)
+        if not cdn_rel and "/" in tag:
+            cdn_rel = sprites.get(tag.rsplit("/", 1)[-1])
         if not cdn_rel:
-            # Tag set but not in content_map → derive by convention
             cdn_rel = f"assets/{tag}.png"
         out["cdnAssetPath"] = cdn_rel
         cdn_full = (public_root / cdn_rel).resolve()
@@ -421,7 +425,50 @@ class AdminHandler(BaseHTTPRequestHandler):
             data = json.loads(p.read_text())
         except json.JSONDecodeError as e:
             return self.send_error_json(500, f"snapshot.json invalid: {e}", "invalid_json")
+
+        # v4: enrich every element with resourceState + cdn/static metadata
+        content_map = self._load_content_map_safely()
+        manifest_version = self._load_manifest_version_safely()
+        public_root = (self.repo_root / PUBLIC_DIR_NAME).resolve()
+        for src in data.get("sources", []):
+            for el in src.get("elements", []):
+                try:
+                    el.update(enrich_element_state(el, content_map, public_root, manifest_version))
+                except Exception as e:
+                    el["resourceState"] = "builtin_placeholder"
+                    el["warnings"] = [f"enrichment failed: {e}"]
+
         return self.send_json(200, data)
+
+    def _load_content_map_safely(self) -> dict:
+        p = self.repo_root / PUBLIC_DIR_NAME / "content_map.json"
+        if not p.exists():
+            return {"sprites": {}}
+        try:
+            raw = json.loads(p.read_text())
+        except json.JSONDecodeError:
+            return {"sprites": {}}
+        # Normalize: real content_map.json stores sprites as a list of
+        # {"key", "path"} objects; enrich_element_state expects a dict {key: path}.
+        sprites = raw.get("sprites")
+        if isinstance(sprites, list):
+            raw["sprites"] = {
+                entry["key"]: entry["path"]
+                for entry in sprites
+                if isinstance(entry, dict) and "key" in entry and "path" in entry
+            }
+        elif not isinstance(sprites, dict):
+            raw["sprites"] = {}
+        return raw
+
+    def _load_manifest_version_safely(self) -> str:
+        p = self.repo_root / PUBLIC_DIR_NAME / "manifest.json"
+        if not p.exists():
+            return "<unknown>"
+        try:
+            return json.loads(p.read_text()).get("version", "<unknown>")
+        except json.JSONDecodeError:
+            return "<unknown>"
 
     def serve_v2_thumb(self):
         qs = self.path.split("?", 1)[1] if "?" in self.path else ""

@@ -72,5 +72,69 @@ class EnrichmentTests(unittest.TestCase):
         # No sprite assigned in Unity but ContentTag will inject at runtime.
         self.assertEqual(s["resourceState"], "tagged_unpublished")
 
+import http.client, threading, time
+
+
+class V4SnapshotIntegrationTests(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        import server as srv
+        cls.srv = srv
+
+        cls.tmp = tempfile.TemporaryDirectory()
+        cls.data_root = Path(cls.tmp.name)
+        (cls.data_root / "cache").mkdir()
+
+        # Write a minimal snapshot with 4 elements of different states
+        snap = {
+            "generatedAt": "2026-05-12T20:00:00Z",
+            "unityProjectRoot": "/fake/unity",
+            "sources": [{
+                "type": "scene", "path": "Assets/Scenes/X.unity", "displayName": "X",
+                "elements": [
+                    {"id": "e1", "currentAssetPath": "Resources/unity_builtin_extra:UISprite",
+                     "contentTagKey": "chips/chip_01", "isBuiltin": True,
+                     "gameObjectPath": "Canvas/Chip1", "componentType": "Image"},
+                    {"id": "e2", "currentAssetPath": "Resources/unity_builtin_extra:UISprite",
+                     "contentTagKey": "chips/chip_06", "isBuiltin": True,
+                     "gameObjectPath": "Canvas/Chip6", "componentType": "Image"},
+                    {"id": "e3", "currentAssetPath": "Assets/Art/UI/x.png",
+                     "contentTagKey": "", "isBuiltin": False,
+                     "gameObjectPath": "Canvas/Static", "componentType": "Image"},
+                    {"id": "e4", "currentAssetPath": "Resources/unity_builtin_extra:UISprite",
+                     "contentTagKey": "", "isBuiltin": True,
+                     "gameObjectPath": "Canvas/Locked", "componentType": "Image"},
+                ]
+            }]
+        }
+        (cls.data_root / "snapshot.json").write_text(json.dumps(snap))
+
+        cls.repo_root = Path(__file__).parent.parent
+        cls.port = 8790
+        cls.server = srv.make_server("127.0.0.1", cls.port, cls.repo_root, data_root=cls.data_root)
+        cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
+        cls.thread.start()
+        time.sleep(0.15)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.server.shutdown(); cls.server.server_close(); cls.tmp.cleanup()
+
+    def test_snapshot_endpoint_enriches_resourceState(self):
+        conn = http.client.HTTPConnection("127.0.0.1", self.port)
+        conn.request("GET", "/api/v2/snapshot")
+        r = conn.getresponse()
+        self.assertEqual(r.status, 200)
+        data = json.loads(r.read())
+        elements = data["sources"][0]["elements"]
+        states = {e["id"]: e["resourceState"] for e in elements}
+        self.assertEqual(states["e1"], "cdn_managed")        # chip_01 exists in real public/assets
+        # e2 may be tagged_unpublished or cdn_managed depending on whether chip_06 exists
+        self.assertIn(states["e2"], ("tagged_unpublished", "cdn_managed"))
+        self.assertEqual(states["e3"], "static_only")
+        self.assertEqual(states["e4"], "builtin_placeholder")
+
+
 if __name__ == "__main__":
     unittest.main()
