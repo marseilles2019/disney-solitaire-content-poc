@@ -633,7 +633,11 @@ body { overflow: hidden; }
 .el-draft  { background: #f59e0b; }
 .el-static { background: #2563eb; }
 .el-dual   { background: #f43f5e; }
-.el-locked { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.08); }
+/* Locked elements (builtin_placeholder) are NOT clickable — they're usually
+   full-canvas backdrops (ThemeBackdrop) that would eat clicks aimed at chips
+   layered above. pointer-events:none lets clicks in chip-adjacent gaps fall
+   through silently instead of wrongly selecting the backdrop. */
+.el-locked { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.08); pointer-events: none; }
 
 /* Layout — legend swatches matching 5 element states */
 .v3-legend-swatch-cdn    { background: #10b981; }

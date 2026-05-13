@@ -96,7 +96,10 @@ async function refresh() {
     state.snapshot = await api.fetchSnapshot();
     state.selectedSourceIdx = pickInitialSourceIdx();
     const src = state.snapshot.sources[state.selectedSourceIdx];
-    state.selectedElementId = src?.elements?.[0]?.id ?? null;
+    // Auto-pick first REPLACEABLE element (not the often-locked elements[0] like
+    // ThemeBackdrop) so the user lands on something they can immediately edit.
+    const firstReplaceable = src?.elements?.find(e => e.resourceState && e.resourceState !== "builtin_placeholder");
+    state.selectedElementId = firstReplaceable?.id ?? src?.elements?.[0]?.id ?? null;
     renderAll();
   } catch (e) {
     showError(e.message);
