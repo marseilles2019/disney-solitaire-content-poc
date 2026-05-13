@@ -242,7 +242,7 @@ class AdminHandler(BaseHTTPRequestHandler):
             return self.handle_api_get()
         if self.path == "/" or self.path == "":
             self.send_response(302)
-            self.send_header("Location", "/admin/")
+            self.send_header("Location", "/v3/")
             self.end_headers()
             return
         if self.path.startswith("/admin/") or self.path == "/admin":
