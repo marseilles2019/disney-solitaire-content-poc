@@ -40,6 +40,11 @@
   <div id="v3-toast" class="v2-toast"></div>
   <div id="v3-batch-modal" class="batch-backdrop"></div>
 
+  <script type="module">
+    import { createPendingStore } from "./pending-store.js";
+    import { createLayoutEditor, computeNativeRatioHeight } from "./layout-edit.js";
+    window._layoutEdit = { createPendingStore, createLayoutEditor, computeNativeRatioHeight };
+  </script>
   <script type="module" src="app.js"></script>
 </body>
 </html>

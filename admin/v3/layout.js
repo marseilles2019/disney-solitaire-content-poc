@@ -1,8 +1,126 @@
-import { state, selectedSource, overlaySource, isDirty, stateBadge } from "./state.js";
+import { state, selectedSource, overlaySource, selectedElement, isDirty, stateBadge } from "./state.js";
 
 function escape(s) {
   return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
+
+// ── Layout-edit V7: toolbar, pending-store, dirty/lock visuals ──────────────
+
+let _store = null;
+let _editor = null;
+let _gridSize = 0;
+
+function getStore() {
+  if (_store) return _store;
+  // wait until the module export is available (injected in index.html module block)
+  if (!window._layoutEdit) return null;
+  _store = window._layoutEdit.createPendingStore({ apiBaseUrl: "/api", debounceMs: 400 });
+  _store.onChange(() => {
+    renderDirtyMarkers();
+    const undoBtn = document.getElementById("layout-undo-btn");
+    const redoBtn = document.getElementById("layout-redo-btn");
+    if (undoBtn) undoBtn.disabled = !_store.canUndo();
+    if (redoBtn) redoBtn.disabled = !_store.canRedo();
+  });
+  return _store;
+}
+
+function getEditor() {
+  if (_editor) return _editor;
+  if (!window._layoutEdit) return null;
+  _editor = window._layoutEdit.createLayoutEditor({
+    containerEl: document.getElementById("layout-edit-layer"),
+    store: getStore(),
+    getSnapshot: () => state.snapshot,
+    getCanvasScale: () => window._lastCanvasScale || 1,
+    getGridSize: () => _gridSize,
+    elementResolver: (id) => document.querySelector(`[data-element-id="${CSS.escape(id)}"]`),
+  });
+  return _editor;
+}
+
+function renderDirtyMarkers() {
+  const store = getStore();
+  if (!store) return;
+  const snap = state.snapshot;
+  document.querySelectorAll("[data-element-id]").forEach(el => {
+    const id = el.dataset.elementId;
+    const patch = store.getRectPatch(id);
+    el.classList.toggle("element-dirty", patch != null);
+
+    if (!patch || !snap) { el.classList.remove("element-out-of-canvas"); return; }
+    const src = snap.sources?.find(s => (s.elements ?? []).some(e => e.id === id));
+    if (!src?.canvas) { el.classList.remove("element-out-of-canvas"); return; }
+    const exported = src.elements.find(e => e.id === id);
+    const w = patch.hasWidth  ? patch.width  : exported?.rect?.width  ?? 0;
+    const h = patch.hasHeight ? patch.height : exported?.rect?.height ?? 0;
+    const x = patch.hasAnchoredX ? patch.anchoredX : exported?.rect?.anchoredX ?? 0;
+    const y = patch.hasAnchoredY ? patch.anchoredY : exported?.rect?.anchoredY ?? 0;
+    const halfW = w / 2, halfH = h / 2;
+    const canvasW = src.canvas.referenceWidth, canvasH = src.canvas.referenceHeight;
+    const outside = Math.abs(x) + halfW > canvasW / 2 || Math.abs(y) + halfH > canvasH / 2;
+    el.classList.toggle("element-out-of-canvas", outside);
+  });
+}
+
+function wireToolbar() {
+  document.querySelectorAll(".layout-grid-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".layout-grid-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      _gridSize = parseInt(btn.dataset.grid, 10) || 0;
+    });
+  });
+  const undoBtn = document.getElementById("layout-undo-btn");
+  const redoBtn = document.getElementById("layout-redo-btn");
+  if (undoBtn) undoBtn.addEventListener("click", () => { const s = getStore(); if (s) s.undo(); });
+  if (redoBtn) redoBtn.addEventListener("click", () => { const s = getStore(); if (s) s.redo(); });
+
+  const resetBtn = document.getElementById("reset-native-ratio-btn");
+  if (resetBtn) {
+    resetBtn.addEventListener("click", () => {
+      const sel = selectedElement();
+      if (!sel) return;
+      const targetEl = document.querySelector(`[data-element-id="${CSS.escape(sel.id)}"]`);
+      const currentWidthPx = targetEl ? (parseFloat(targetEl.style.width) || 0) : 0;
+      const scale = window._lastCanvasScale || 1;
+      const widthUnity = currentWidthPx > 0 ? currentWidthPx / scale : (sel.rect?.worldWidth ?? 100);
+      const heightUnity = window._layoutEdit?.computeNativeRatioHeight(widthUnity, sel.spriteNative);
+      if (heightUnity == null) return;
+      const store = getStore();
+      if (!store) return;
+      store.setRectPatch(sel.id, {
+        hasAnchoredX: false, anchoredX: 0,
+        hasAnchoredY: false, anchoredY: 0,
+        hasWidth:     true,  width: widthUnity,
+        hasHeight:    true,  height: heightUnity,
+      });
+    });
+  }
+}
+
+// Keyboard shortcuts (Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z) — wired once at module load
+window.addEventListener("keydown", (e) => {
+  const meta = e.ctrlKey || e.metaKey;
+  if (!meta) return;
+  if (e.key.toLowerCase() === "z" && !e.shiftKey) {
+    e.preventDefault();
+    const s = getStore();
+    if (s) s.undo();
+  } else if (e.key.toLowerCase() === "z" && e.shiftKey) {
+    e.preventDefault();
+    const s = getStore();
+    if (s) s.redo();
+  }
+});
+
+// beforeunload guard
+window.addEventListener("beforeunload", (e) => {
+  if (_store && _store._patches.size > 0) {
+    e.preventDefault();
+    e.returnValue = "";
+  }
+});
 
 export function renderLayout() {
   const root = document.getElementById("v3-layout");
@@ -49,6 +167,8 @@ export function renderLayout() {
   // free of chip rows — keeps the main viewport area uncluttered.
   const ov = overlaySource();
 
+  const selEl = selectedElement();
+
   root.innerHTML = `
     <div class="pane-header">
       <div class="pane-header-title">▣ 布局</div>
@@ -57,10 +177,27 @@ export function renderLayout() {
     </div>
     ${emptyStateBanner}
     ${legend}
-    <div class="canvas-area">
-      <div class="canvas-frame-wrap" style="aspect-ratio:${refW}/${refH}">
-        <div class="canvas-frame" id="v3-canvas-frame"></div>
+    <div class="layout-toolbar">
+      <div class="layout-grid-control">
+        Grid:
+        <button data-grid="0"  class="layout-grid-btn${_gridSize === 0  ? ' active' : ''}">Off</button>
+        <button data-grid="1"  class="layout-grid-btn${_gridSize === 1  ? ' active' : ''}">1px</button>
+        <button data-grid="4"  class="layout-grid-btn${_gridSize === 4  ? ' active' : ''}">4px</button>
+        <button data-grid="8"  class="layout-grid-btn${_gridSize === 8  ? ' active' : ''}">8px</button>
       </div>
+      <div class="layout-undo-control">
+        <button id="layout-undo-btn" ${!(_store && _store.canUndo()) ? 'disabled' : ''}>↶ Undo</button>
+        <button id="layout-redo-btn" ${!(_store && _store.canRedo()) ? 'disabled' : ''}>↷ Redo</button>
+      </div>
+    </div>
+    <div class="canvas-area">
+      <div class="canvas-frame-wrap" style="aspect-ratio:${refW}/${refH}; position:relative;">
+        <div class="canvas-frame" id="v3-canvas-frame" data-canvas-root></div>
+        <div id="layout-edit-layer"></div>
+      </div>
+    </div>
+    <div class="reset-control" id="reset-control"${selEl && selEl.spriteNative ? '' : ' hidden'}>
+      <button id="reset-native-ratio-btn">↻ Reset to native ratio</button>
     </div>
     <details class="canvas-tech">
       <summary>技术信息</summary>
@@ -69,6 +206,14 @@ export function renderLayout() {
 
   // State preset clicks are now wired in sources.js sidebar (one nav point).
 
+  // Wire toolbar buttons after innerHTML replace.
+  wireToolbar();
+
+  // layout-edit-layer is recreated on every renderLayout call — dispose the old
+  // Moveable instance and null out the editor so getEditor() rebuilds with the
+  // fresh DOM node on next element selection.
+  if (_editor) { _editor.dispose(); _editor = null; }
+
   const frame = document.getElementById("v3-canvas-frame");
   // Use real frame display width so text fontSize scales exactly like Unity's
   // canvas scaler: cssPx = (unityFontSize / refW) * frameDisplayWidth.
@@ -76,6 +221,8 @@ export function renderLayout() {
   // resolved against an outer container (v3-layout pane ~1660px), making
   // text ~3.3× too big.
   const frameDisplayWidth = frame.getBoundingClientRect().width || 480;
+  // Expose canvas scale for layout-editor (displayPx / Unity reference px).
+  window._lastCanvasScale = frameDisplayWidth / refW;
 
   // State focus rule: when an overlay is active, scene elements belong to
   // "other states" (shared backdrop). Skip rendering them entirely — only
@@ -89,9 +236,13 @@ export function renderLayout() {
     const div = document.createElement("div");
     div.className = `el ${elKind(e)}${e.id === state.selectedElementId ? ' selected' : ''}${isDirty(e.id) ? ' dirty' : ''}`;
     div.dataset.id = e.id;
+    div.dataset.elementId = e.id;  // for elementResolver + collectGuidelines
+    if (e.parentIsLayoutGroup) div.classList.add("element-locked-by-layoutgroup");
     const friendlyName = (e.gameObjectPath || "").split("/").pop() || e.id;
     const badge = stateBadge(e);
-    div.title = `${friendlyName} · ${badge.icon} ${badge.label}`;
+    div.title = e.parentIsLayoutGroup
+      ? `${friendlyName} · 🔒 Controlled by LayoutGroup`
+      : `${friendlyName} · ${badge.icon} ${badge.label}`;
 
     // worldX is screen-pixel center; convert to top-left % within refW×refH
     const leftPct = ((e.rect.worldX - e.rect.worldWidth / 2) / refW) * 100;
@@ -124,6 +275,10 @@ export function renderLayout() {
     }
     div.addEventListener("click", () => {
       state.selectedElementId = e.id;
+      const editor = getEditor();
+      if (editor) editor.select(e.id);
+      const resetCtrl = document.getElementById("reset-control");
+      if (resetCtrl) resetCtrl.hidden = !e.spriteNative;
       window.__v3_renderAll();
     });
     frame.appendChild(div);
@@ -158,9 +313,13 @@ export function renderLayout() {
       const div = document.createElement("div");
       div.className = `el el-overlay ${elKind(e)}${e.id === state.selectedElementId ? ' selected' : ''}${isDirty(e.id) ? ' dirty' : ''}`;
       div.dataset.id = e.id;
+      div.dataset.elementId = e.id;  // for elementResolver + collectGuidelines
+      if (e.parentIsLayoutGroup) div.classList.add("element-locked-by-layoutgroup");
       const friendlyName = (e.gameObjectPath || "").split("/").pop() || e.id;
       const badge = stateBadge(e);
-      div.title = `[${escape(ov.displayName)}] ${friendlyName} · ${badge.icon} ${badge.label}`;
+      div.title = e.parentIsLayoutGroup
+        ? `[${escape(ov.displayName)}] ${friendlyName} · 🔒 Controlled by LayoutGroup`
+        : `[${escape(ov.displayName)}] ${friendlyName} · ${badge.icon} ${badge.label}`;
 
       // Offset modal world coords by canvas center
       const absX = ovCenterX + e.rect.worldX;
@@ -192,6 +351,10 @@ export function renderLayout() {
       }
       div.addEventListener("click", () => {
         state.selectedElementId = e.id;
+        const editor = getEditor();
+        if (editor) editor.select(e.id);
+        const resetCtrl = document.getElementById("reset-control");
+        if (resetCtrl) resetCtrl.hidden = !e.spriteNative;
         window.__v3_renderAll();
       });
       frame.appendChild(div);
