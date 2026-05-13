@@ -97,6 +97,25 @@ export function renderLayout() {
     if (isDirty(e.id) && state.dirty.get(e.id).previewObjectUrl) {
       div.style.background = `center/cover no-repeat url('${state.dirty.get(e.id).previewObjectUrl}')`;
     }
+    // Text element: render the actual game text inside the box (T2 — V6.1)
+    if (e.componentType === "Text" && e.text && e.text.content) {
+      div.classList.add("el-text");
+      // Strip TMP rich-text tags for cleaner display (basic regex)
+      const cleanText = String(e.text.content).replace(/<[^>]+>/g, "");
+      div.textContent = cleanText;
+      // Scale Unity canvas fontSize → CSS px via container query inline unit
+      const scaleFactor = (e.text.fontSize > 0) ? (e.text.fontSize / refW) * 100 : 0;
+      if (scaleFactor > 0) {
+        div.style.fontSize = `clamp(7px, ${scaleFactor}cqi, 32px)`;
+      }
+      if (e.text.colorHex) div.style.color = e.text.colorHex;
+      // Alignment normalization (TMP TextAlignmentOptions + legacy TextAnchor)
+      const a = String(e.text.alignment || "Center").toLowerCase();
+      div.style.justifyContent = a.includes("right") ? "flex-end" : a.includes("left") ? "flex-start" : "center";
+      div.style.alignItems = (a.includes("top") || a.includes("upper")) ? "flex-start" : (a.includes("bottom") || a.includes("lower")) ? "flex-end" : "center";
+      if (e.text.bold) div.style.fontWeight = "700";
+      if (e.text.italic) div.style.fontStyle = "italic";
+    }
     div.addEventListener("click", () => {
       state.selectedElementId = e.id;
       window.__v3_renderAll();
@@ -148,6 +167,22 @@ export function renderLayout() {
       if (isDirty(e.id) && state.dirty.get(e.id).previewObjectUrl) {
         div.style.background = `center/cover no-repeat url('${state.dirty.get(e.id).previewObjectUrl}')`;
       }
+      // Text element: render game text inside the box (T2 — V6.1, overlay branch)
+      if (e.componentType === "Text" && e.text && e.text.content) {
+        div.classList.add("el-text");
+        const cleanText = String(e.text.content).replace(/<[^>]+>/g, "");
+        div.textContent = cleanText;
+        const scaleFactor = (e.text.fontSize > 0) ? (e.text.fontSize / refW) * 100 : 0;
+        if (scaleFactor > 0) {
+          div.style.fontSize = `clamp(7px, ${scaleFactor}cqi, 32px)`;
+        }
+        if (e.text.colorHex) div.style.color = e.text.colorHex;
+        const a = String(e.text.alignment || "Center").toLowerCase();
+        div.style.justifyContent = a.includes("right") ? "flex-end" : a.includes("left") ? "flex-start" : "center";
+        div.style.alignItems = (a.includes("top") || a.includes("upper")) ? "flex-start" : (a.includes("bottom") || a.includes("lower")) ? "flex-end" : "center";
+        if (e.text.bold) div.style.fontWeight = "700";
+        if (e.text.italic) div.style.fontStyle = "italic";
+      }
       div.addEventListener("click", () => {
         state.selectedElementId = e.id;
         window.__v3_renderAll();
@@ -158,6 +193,8 @@ export function renderLayout() {
 }
 
 function elKind(e) {
+  // Text elements: text content IS the visual — no fill / no locked-style.
+  if (e.componentType === "Text") return "el-text-kind";
   switch (e.resourceState) {
     case "cdn_managed":         return "el-cdn";
     case "tagged_unpublished":  return "el-draft";

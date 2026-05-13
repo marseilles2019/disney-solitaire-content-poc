@@ -12,6 +12,40 @@ export function renderDetail() {
   const e = selectedElement();
   if (!e) { pane.innerHTML = `<div style="padding:40px;color:var(--text-dim);">选择一个元素以查看详情</div>`; return; }
 
+  // T2 — V6.1: Text elements render typography info, not asset replace.
+  if (e.componentType === "Text" && e.text) {
+    const t = e.text;
+    const lastSeg = (e.gameObjectPath || "").split("/").pop() || e.id;
+    const parentPath = (e.gameObjectPath || "").split("/").slice(0, -1).join(" › ") || "(root)";
+    const styleBits = [];
+    if (t.colorHex) styleBits.push(`color:${escape(t.colorHex)}`);
+    if (t.bold) styleBits.push("font-weight:700");
+    if (t.italic) styleBits.push("font-style:italic");
+    pane.innerHTML = `
+      <div class="detail-text-preview" style="${styleBits.join(";")}">
+        ${escape(String(t.content || ""))}
+      </div>
+      <div class="detail-title">${escape(lastSeg)}</div>
+      <div class="detail-breadcrumb mono">${escape(parentPath)}</div>
+      <div class="detail-badges">
+        <span class="v2-component-badge v2-component-text">Text</span>
+      </div>
+      <div class="detail-section">
+        <div class="detail-section-title">Typography</div>
+        <div class="detail-kv">
+          <span class="k">字号</span><span class="v">${t.fontSize?.toFixed?.(0) ?? escape(t.fontSize)}</span>
+          <span class="k">颜色</span><span class="v">${escape(t.colorHex || "—")}</span>
+          <span class="k">对齐</span><span class="v">${escape(t.alignment || "—")}</span>
+          <span class="k">字体</span><span class="v">${escape(t.fontName || "—")}</span>
+          ${t.bold ? `<span class="k">样式</span><span class="v">Bold</span>` : ""}
+          ${t.italic ? `<span class="k">样式</span><span class="v">Italic</span>` : ""}
+        </div>
+      </div>
+      <div class="detail-readonly">📝 文字内容由游戏数据 / 本地化决定，不在此处替换</div>
+    `;
+    return;
+  }
+
   const thumbSrc = e.thumbnailGuid ? api.thumbUrl(e.thumbnailGuid) : null;
   const thumbHtml = thumbSrc
     ? `<img src="${thumbSrc}" style="width:60%;aspect-ratio:1;border-radius:8px;">`

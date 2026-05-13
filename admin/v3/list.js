@@ -65,8 +65,15 @@ function renderRow(e, scope = "main") {
   const d = dirty ? state.dirty.get(e.id) : null;
   const thumbStyle = dirty && d.previewObjectUrl ? `background-image:url('${d.previewObjectUrl}');background-size:cover;` : "";
   const badge = stateBadge(e);
-  // Friendly name: last segment of gameObjectPath
-  const friendlyName = (e.gameObjectPath || "").split("/").pop() || e.id;
+  // Friendly name: for Text elements, prefer the actual text content; else last
+  // segment of gameObjectPath. (T2 — V6.1: text content is self-identifying.)
+  const friendlyName = (() => {
+    if (e.componentType === "Text" && e.text?.content) {
+      const t = String(e.text.content).replace(/<[^>]+>/g, "").trim();
+      if (t) return `"${t.slice(0, 24)}${t.length > 24 ? "…" : ""}"`;
+    }
+    return (e.gameObjectPath || "").split("/").pop() || e.id;
+  })();
   return `
     <div class="list-row${sel}${dirty ? ' dirty' : ''}${!isReplaceableEl(e) ? ' readonly' : ''} list-row-${scope}" data-id="${escape(e.id)}" data-scope="${scope}">
       <div class="list-thumb" style="${thumbStyle}"></div>

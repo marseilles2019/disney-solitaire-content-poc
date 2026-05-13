@@ -765,3 +765,54 @@ body { overflow: hidden; }
   padding: 8px 12px 4px;
   margin-top: 6px;
 }
+
+/* ── Text element rendering (T2 — V6.1) ─────────────────────────── */
+/* Text elements: render game text inside the box with system fallback font.
+   The text itself IS the visual content — no fill, no border. */
+.el-text-kind {
+  background: transparent;
+  border-color: transparent;
+}
+.el.el-text {
+  display: flex;
+  padding: 2px 4px;
+  overflow: hidden;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: auto;
+}
+.el.el-text:hover {
+  background: rgba(255, 255, 255, 0.05);
+  outline: 1px dashed color-mix(in srgb, var(--purple) 50%, transparent);
+}
+
+/* Detail preview block for Text */
+.detail-text-preview {
+  margin: 0 0 16px;
+  padding: 24px 16px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 22px;
+  text-align: center;
+  word-break: break-word;
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* List badge color for Text */
+.list-comp-text {
+  background: color-mix(in srgb, var(--purple) 18%, transparent);
+  color: var(--purple);
+}
+
+/* Detail-bar badge for Text */
+.v2-component-badge.v2-component-text {
+  background: color-mix(in srgb, var(--purple) 18%, transparent);
+  color: var(--purple);
+}
