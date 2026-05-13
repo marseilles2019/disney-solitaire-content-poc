@@ -70,6 +70,12 @@ export function renderLayout() {
   // State preset clicks are now wired in sources.js sidebar (one nav point).
 
   const frame = document.getElementById("v3-canvas-frame");
+  // Use real frame display width so text fontSize scales exactly like Unity's
+  // canvas scaler: cssPx = (unityFontSize / refW) * frameDisplayWidth.
+  // Previously used `cqi` units, but no container-type was set so they
+  // resolved against an outer container (v3-layout pane ~1660px), making
+  // text ~3.3× too big.
+  const frameDisplayWidth = frame.getBoundingClientRect().width || 480;
 
   // State focus rule: when an overlay is active, scene elements belong to
   // "other states" (shared backdrop). Skip rendering them entirely — only
@@ -103,10 +109,10 @@ export function renderLayout() {
       // Strip TMP rich-text tags for cleaner display (basic regex)
       const cleanText = String(e.text.content).replace(/<[^>]+>/g, "");
       div.textContent = cleanText;
-      // Scale Unity canvas fontSize → CSS px via container query inline unit
-      const scaleFactor = (e.text.fontSize > 0) ? (e.text.fontSize / refW) * 100 : 0;
-      if (scaleFactor > 0) {
-        div.style.fontSize = `clamp(7px, ${scaleFactor}cqi, 32px)`;
+      // Scale Unity canvas fontSize → CSS px proportional to frame display width
+      const pxSize = (e.text.fontSize > 0) ? (e.text.fontSize / refW) * frameDisplayWidth : 0;
+      if (pxSize > 0) {
+        div.style.fontSize = `${Math.max(4, pxSize).toFixed(2)}px`;
       }
       if (e.text.colorHex) div.style.color = e.text.colorHex;
       // Alignment normalization (TMP TextAlignmentOptions + legacy TextAnchor)
