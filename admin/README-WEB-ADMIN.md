@@ -209,3 +209,25 @@ into the tool, that's a bug — file it against the v5 refactor.
 | Sidebar IA | Flat | World-grouped from `manifest.worlds[]` + `prefab-usage.json` |
 
 For the full v5 surface and proof, see `SMOKE-TEST-V5.md`.
+
+---
+
+## SpriteAtlas-using projects
+
+If your Unity project uses `.spriteatlas` files, v6.3 auto-handles the atlas
+repack on every Apply. Nothing to configure — just Sync once after creating /
+editing atlas resources so `sprite-atlas-membership.json` is current. The
+admin frontend surfaces a `🧩 Part of atlas: <name>` badge in the detail
+pane for any element whose asset is an atlas member.
+
+To opt out (e.g. you have a CI step that pre-packs all atlases):
+- In `WebAdminConfig.asset` → `Conventions` → `Sprite Atlas Auto Repack` =
+  `false`.
+- Re-Sync. Detail pane will still surface the atlas badge for visibility.
+
+Recovery tool: Settings panel → "Force Repack All Atlases" posts to
+`/api/v6/force-repack-all`, which writes a flag the Editor picks up on focus
+and runs `SpriteAtlasUtility.PackAllAtlases`.
+
+Solitaire is a 0-atlas project today — feature is dormant. See
+`admin/SMOKE-TEST-V6.3.md` for the end-to-end test on a synthetic fixture.
