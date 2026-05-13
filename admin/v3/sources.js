@@ -1,4 +1,5 @@
-import { state, selectedSource, isDirty } from "./state.js";
+import { state, isDirty } from "./state.js";
+import { STATE_PRESETS, resolvePreset, findActivePreset } from "./state-presets.js";
 
 function escape(s) {
   return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -17,37 +18,114 @@ function counts(src) {
   return c;
 }
 
+function combinedCounts(sceneIdx, overlayIdx) {
+  const sc = counts(state.snapshot.sources[sceneIdx]);
+  const overlay = overlayIdx != null && overlayIdx >= 0 ? state.snapshot.sources[overlayIdx] : null;
+  const oc = overlay ? counts(overlay) : { dirty:0, replaceable:0, total:0, cdn:0, draft:0, conflict:0, locked:0 };
+  return {
+    dirty: sc.dirty + oc.dirty,
+    replaceable: sc.replaceable + oc.replaceable,
+    sceneTotal: sc.total,
+    overlayTotal: oc.total,
+    cdn: sc.cdn + oc.cdn,
+    draft: sc.draft + oc.draft,
+    conflict: sc.conflict + oc.conflict,
+  };
+}
+
+function badges(c) {
+  return [
+    c.cdn      > 0 ? `<span class="v3-state-badge v3-state-cdn"      title="${c.cdn} 已上架">🟢${c.cdn}</span>` : '',
+    c.draft    > 0 ? `<span class="v3-state-badge v3-state-draft"    title="${c.draft} 草稿">🟡${c.draft}</span>` : '',
+    c.conflict > 0 ? `<span class="v3-state-badge v3-state-conflict" title="${c.conflict} 冲突">⚠${c.conflict}</span>` : '',
+    c.dirty    > 0 ? `<span class="v2-sidebar-dirty">${c.dirty}</span>` : '',
+  ].join('');
+}
+
 export function renderSources() {
   const root = document.getElementById("v3-sources");
-  const scenes  = state.snapshot.sources.filter(s => s.type === "scene");
-  const prefabs = state.snapshot.sources.filter(s => s.type === "prefab");
+  const sources = state.snapshot.sources;
+  const activePreset = findActivePreset(state.snapshot, state.selectedSourceIdx, state.overlaySourceIdx);
 
-  const section = (title, items) => `
+  // ── ▼ 状态 (states) — preset-driven nav, replaces former "Scenes" section ──
+  const availablePresets = STATE_PRESETS
+    .map(p => ({ p, r: resolvePreset(p, state.snapshot) }))
+    .filter(({ p, r }) => r.sourceIdx >= 0 && (p.overlayRe == null || r.overlayIdx >= 0));
+
+  const presetRows = availablePresets.map(({ p, r }) => {
+    const c = combinedCounts(r.sourceIdx, r.overlayIdx);
+    const active = activePreset?.id === p.id ? " active" : "";
+    const countDisplay = c.overlayTotal > 0
+      ? `${c.sceneTotal}+${c.overlayTotal}`
+      : `${c.sceneTotal}`;
+    return `<div class="collection-nav-item v2-sidebar-row${active}" data-preset="${p.id}" title="${escape(p.label)} · ${countDisplay} 个元素">
+      <span class="v2-sidebar-name">${escape(p.label)}</span>
+      ${badges(c)}
+      <span class="v2-sidebar-count">${countDisplay}</span>
+    </div>`;
+  }).join("");
+
+  // Fallback: scenes with elements but not in any preset (Bootstrap, AtomDemo are 0-element so skip)
+  const presetSceneIdxs = new Set(availablePresets.map(({ r }) => r.sourceIdx));
+  const orphanScenes = sources
+    .map((s, i) => ({ s, i }))
+    .filter(({ s, i }) => s.type === "scene" && s.elements.length > 0 && !presetSceneIdxs.has(i));
+  const orphanRows = orphanScenes.map(({ s, i }) => {
+    const c = counts(s);
+    const active = (i === state.selectedSourceIdx && state.overlaySourceIdx == null && !activePreset) ? " active" : "";
+    return `<div class="collection-nav-item v2-sidebar-row${active}" data-idx="${i}" title="${escape(s.displayName)} · 原始场景">
+      <span class="v2-sidebar-name">🎬 ${escape(s.displayName)}</span>
+      ${badges(c)}
+      <span class="v2-sidebar-count">${c.total}</span>
+    </div>`;
+  }).join("");
+
+  // ── ▼ 组件 (prefabs) — all prefabs, including modals for direct edit access ──
+  const prefabs = sources.map((s, i) => ({ s, i })).filter(({ s }) => s.type === "prefab");
+  const prefabRows = prefabs.map(({ s, i }) => {
+    const c = counts(s);
+    const active = (i === state.selectedSourceIdx && state.overlaySourceIdx == null && !activePreset) ? " active" : "";
+    const locked = c.replaceable === 0 && c.dirty === 0 ? " v3-sidebar-locked" : "";
+    return `<div class="collection-nav-item v2-sidebar-row${active}${locked}" data-idx="${i}" title="${escape(s.displayName)} · ${c.total} 个元素">
+      <span class="v2-sidebar-name">${escape(s.displayName)}</span>
+      ${badges(c)}
+      <span class="v2-sidebar-count">${c.total}</span>
+    </div>`;
+  }).join("");
+
+  root.innerHTML = `
     <div class="v2-sidebar-section">
-      <div class="v2-sidebar-header">${title} <span class="v2-sidebar-count-total">${items.length}</span></div>
-      ${items.map(s => {
-        const i = state.snapshot.sources.indexOf(s);
-        const c = counts(s);
-        const active = i === state.selectedSourceIdx ? " active" : "";
-        const locked = c.replaceable === 0 && c.dirty === 0 ? " v3-sidebar-locked" : "";
-        return `<div class="collection-nav-item v2-sidebar-row${active}${locked}" data-idx="${i}">
-          <span class="v2-sidebar-name">${escape(s.displayName)}</span>
-          ${c.cdn      > 0 ? `<span class="v3-state-badge v3-state-cdn"      title="${c.cdn} 已上架">🟢${c.cdn}</span>` : ''}
-          ${c.draft    > 0 ? `<span class="v3-state-badge v3-state-draft"    title="${c.draft} 草稿">🟡${c.draft}</span>` : ''}
-          ${c.conflict > 0 ? `<span class="v3-state-badge v3-state-conflict" title="${c.conflict} 冲突">⚠${c.conflict}</span>` : ''}
-          ${c.dirty    > 0 ? `<span class="v2-sidebar-dirty">${c.dirty}</span>` : ''}
-          <span class="v2-sidebar-count" title="${c.total} 个元素">${c.total}</span>
-        </div>`;
-      }).join("")}
+      <div class="v2-sidebar-header">▼ 状态 <span class="v2-sidebar-count-total">${availablePresets.length + orphanScenes.length}</span></div>
+      ${presetRows}
+      ${orphanRows}
+    </div>
+    <div class="v2-sidebar-section">
+      <div class="v2-sidebar-header">▼ 组件 <span class="v2-sidebar-count-total">${prefabs.length}</span></div>
+      ${prefabRows}
     </div>`;
 
-  root.innerHTML = section("▼ Scenes", scenes) + section("▼ Prefabs", prefabs);
+  // ── click handlers — preset rows apply scene+overlay combo; idx rows = raw source ──
+  root.querySelectorAll("[data-preset]").forEach(el => {
+    el.addEventListener("click", () => {
+      const p = STATE_PRESETS.find(x => x.id === el.dataset.preset);
+      if (!p) return;
+      const r = resolvePreset(p, state.snapshot);
+      state.selectedSourceIdx = r.sourceIdx;
+      state.overlaySourceIdx = r.overlayIdx ?? null;
+      const src = state.snapshot.sources[r.sourceIdx];
+      const firstReplaceable = src.elements.find(e => e.resourceState && e.resourceState !== "builtin_placeholder");
+      state.selectedElementId = firstReplaceable?.id ?? src.elements[0]?.id ?? null;
+      window.__v3_renderAll();
+    });
+  });
 
-  root.querySelectorAll(".v2-sidebar-row").forEach(el => {
+  root.querySelectorAll("[data-idx]").forEach(el => {
     el.addEventListener("click", () => {
       state.selectedSourceIdx = parseInt(el.dataset.idx, 10);
-      const first = state.snapshot.sources[state.selectedSourceIdx].elements[0];
-      state.selectedElementId = first ? first.id : null;
+      state.overlaySourceIdx = null;  // raw source pick — no overlay
+      const src = state.snapshot.sources[state.selectedSourceIdx];
+      const firstReplaceable = src.elements.find(e => e.resourceState && e.resourceState !== "builtin_placeholder");
+      state.selectedElementId = firstReplaceable?.id ?? src.elements[0]?.id ?? null;
       window.__v3_renderAll();
     });
   });
