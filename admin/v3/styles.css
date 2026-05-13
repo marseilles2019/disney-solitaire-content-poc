@@ -905,3 +905,68 @@ body { overflow: hidden; }
   margin-top: 8px;
   line-height: 1.4;
 }
+
+/* Layout-edit V7 */
+.layout-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(255,255,255,0.03);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  gap: 12px;
+  font-size: 12px;
+}
+.layout-grid-btn, #layout-undo-btn, #layout-redo-btn, #reset-native-ratio-btn {
+  background: #1a1a1a;
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #eee;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.layout-grid-btn.active { background: #6d28d9; border-color: #a78bfa; }
+.layout-grid-btn:hover, #layout-undo-btn:not(:disabled):hover, #layout-redo-btn:not(:disabled):hover { background: #2a2a2a; }
+#layout-undo-btn:disabled, #layout-redo-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+#layout-edit-layer {
+  position: absolute; inset: 0; pointer-events: none;
+  z-index: 10;
+}
+#layout-edit-layer .moveable-control, #layout-edit-layer .moveable-line {
+  pointer-events: auto;
+}
+
+.element-locked-by-layoutgroup {
+  outline: 2px solid #a78bfa !important;
+  cursor: not-allowed;
+}
+.element-dirty {
+  outline: 2px dashed #fb923c;
+  position: relative;
+}
+.element-dirty::after {
+  content: "已编辑";
+  position: absolute;
+  top: -16px; right: 0;
+  background: #fb923c; color: #1a1a1a;
+  padding: 0 4px;
+  font-size: 10px;
+  border-radius: 2px;
+  white-space: nowrap;
+}
+.element-out-of-canvas {
+  outline: 2px solid #ef4444 !important;
+}
+
+.moveable-snap-line {
+  background: #a78bfa !important;
+}
+
+.reset-control {
+  padding: 6px 12px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+.layout-grid-control { display: flex; align-items: center; gap: 6px; color: #aaa; }
+.layout-undo-control { display: flex; gap: 6px; }

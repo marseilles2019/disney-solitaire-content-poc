@@ -12,7 +12,9 @@ Env vars:
 from __future__ import annotations
 
 import base64
+import fcntl
 import json
+import math
 import os
 import re
 import subprocess
@@ -72,6 +74,82 @@ def safe_asset_path(repo_root: Path, target: str) -> Path:
     if ext not in ALLOWED_EXTENSIONS:
         raise ValueError("invalid_extension")
     return full
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# Pending-changes helpers
+
+
+def upsert_pending_change(doc, change):
+    """Replace any existing change matching (id, actionType); else append.
+
+    Mutates `doc` in place. Returns the same doc for convenience.
+    """
+    el_id = change.get("id")
+    a_type = change.get("actionType")
+    doc["changes"] = [
+        c for c in doc.get("changes", [])
+        if not (c.get("id") == el_id and c.get("actionType") == a_type)
+    ]
+    doc["changes"].append(change)
+    return doc
+
+
+def with_pending_changes_lock(pending_path, mutate_fn):
+    """Atomic read-mutate-write of pending-changes.json under fcntl.flock.
+
+    `mutate_fn(doc)` is called with the parsed dict and must return the dict
+    to write. Creates the file (with empty changes list) if missing.
+    """
+    pending_path.parent.mkdir(parents=True, exist_ok=True)
+    # Open for read+write, create if missing. Lock for the entire operation.
+    with open(pending_path, "a+") as fh:
+        fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
+        try:
+            fh.seek(0)
+            raw = fh.read()
+            try:
+                doc = json.loads(raw) if raw.strip() else {"changes": []}
+            except json.JSONDecodeError:
+                doc = {"changes": []}
+            doc = mutate_fn(doc)
+            fh.seek(0)
+            fh.truncate()
+            fh.write(json.dumps(doc, indent=2) + "\n")
+        finally:
+            fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+
+
+def validate_rect_patch_body(body):
+    """Return (ok: bool, error_message: str). Pure — no I/O."""
+    if not isinstance(body, dict):
+        return False, "body must be an object"
+    if not body.get("id"):
+        return False, "id is required"
+    rect = body.get("rect")
+    if not isinstance(rect, dict):
+        return False, "rect is required"
+    flag_value_pairs = [
+        ("hasAnchoredX", "anchoredX"),
+        ("hasAnchoredY", "anchoredY"),
+        ("hasWidth",     "width"),
+        ("hasHeight",    "height"),
+    ]
+    for flag, value in flag_value_pairs:
+        if flag not in rect:
+            return False, f"rect.{flag} missing"
+        if value not in rect:
+            return False, f"rect.{value} missing"
+        v = rect[value]
+        if not isinstance(v, (int, float)) or isinstance(v, bool):
+            return False, f"rect.{value} must be a number"
+        if not math.isfinite(float(v)):
+            return False, f"rect.{value} must be finite (no NaN/Inf)"
+    if rect["width"] < 0:
+        return False, "rect.width must be >= 0"
+    if rect["height"] < 0:
+        return False, "rect.height must be >= 0"
+    return True, ""
 
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -373,6 +451,7 @@ class AdminHandler(BaseHTTPRequestHandler):
         mime = {".html": "text/html; charset=utf-8",
                 ".css": "text/css; charset=utf-8",
                 ".js": "application/javascript; charset=utf-8",
+                ".mjs": "application/javascript; charset=utf-8",
                 ".md": "text/plain; charset=utf-8"}.get(ext, "application/octet-stream")
         data = full.read_bytes()
         self.send_response(200)
@@ -400,6 +479,7 @@ class AdminHandler(BaseHTTPRequestHandler):
         mime = {".html": "text/html; charset=utf-8",
                 ".css": "text/css; charset=utf-8",
                 ".js": "application/javascript; charset=utf-8",
+                ".mjs": "application/javascript; charset=utf-8",
                 ".svg": "image/svg+xml"}.get(ext, "application/octet-stream")
         data = full.read_bytes()
         self.send_response(200)
@@ -425,6 +505,7 @@ class AdminHandler(BaseHTTPRequestHandler):
         mime = {".html": "text/html; charset=utf-8",
                 ".css": "text/css; charset=utf-8",
                 ".js": "application/javascript; charset=utf-8",
+                ".mjs": "application/javascript; charset=utf-8",
                 ".svg": "image/svg+xml"}.get(ext, "application/octet-stream")
         data = full.read_bytes()
         self.send_response(200)
@@ -678,6 +759,29 @@ class AdminHandler(BaseHTTPRequestHandler):
         flag.write_text(datetime.utcnow().isoformat() + "Z\n")
         return self.send_json(200, {"ok": True, "flag": str(flag.name)})
 
+    def handle_pending_changes_rect(self):
+        """POST /api/pending-changes/rect — queue a set_rect_transform patch."""
+        try:
+            body = self.read_json_body()
+        except ValueError as e:
+            msg = str(e)
+            if msg == "size_too_large":
+                return self.send_error_json(413, "body too large", "body_too_large")
+            return self.send_error_json(400, f"invalid JSON: {msg}", "invalid_json")
+        except Exception as e:
+            return self.send_error_json(400, f"invalid JSON: {e}", "invalid_json")
+        ok, err = validate_rect_patch_body(body)
+        if not ok:
+            return self.send_error_json(400, err, "invalid_rect_patch")
+        change = {
+            "id": body["id"],
+            "actionType": "set_rect_transform",
+            "rect": body["rect"],
+        }
+        pending_path = self.data_root / "pending-changes.json"
+        with_pending_changes_lock(pending_path, lambda doc: upsert_pending_change(doc, change))
+        return self.send_json(200, {"ok": True, "queued": change["id"]})
+
     # ── POST ────────────────────────────────────────────────────────────
 
     def do_POST(self):
@@ -699,6 +803,8 @@ class AdminHandler(BaseHTTPRequestHandler):
             return self.handle_v4_publish()
         if self.path == "/api/v6/force-repack-all":
             return self.handle_force_repack_all()
+        if self.path == "/api/pending-changes/rect":
+            return self.handle_pending_changes_rect()
         self.send_error(404, "API not found")
 
     def handle_upload(self):
@@ -857,20 +963,13 @@ class AdminHandler(BaseHTTPRequestHandler):
                 return self.send_error_json(400, "directory traversal forbidden", "invalid_target")
             # Append to pending-changes.json (Unity will apply later via watch mode or manual menu)
             pending_path = self.data_root / "pending-changes.json"
-            pending_path.parent.mkdir(parents=True, exist_ok=True)
-            try:
-                doc = json.loads(pending_path.read_text()) if pending_path.exists() else {"changes": []}
-            except json.JSONDecodeError:
-                doc = {"changes": []}
-            # Replace existing entry with same id if any
-            doc["changes"] = [c for c in doc.get("changes", []) if c.get("id") != element_id]
-            doc["changes"].append({
+            change = {
                 "id": element_id,
                 "actionType": "replace_asset",
                 "targetAssetPath": static_path,
                 "newBytesBase64": bytes_b64,
-            })
-            pending_path.write_text(json.dumps(doc, indent=2) + "\n")
+            }
+            with_pending_changes_lock(pending_path, lambda doc: upsert_pending_change(doc, change))
             return self.send_json(200, {"ok": True, "route": "assets", "targetPath": static_path, "sizeBytes": len(decoded)})
 
         return self.send_error_json(500, f"unhandled route {route!r}", "internal")
