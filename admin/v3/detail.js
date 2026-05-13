@@ -197,10 +197,21 @@ async function applyPending(e) {
   }
 }
 
-function updateSaveBtn() {
+export function updateSaveBtn() {
   const btn = document.getElementById("v3-save-btn");
-  document.getElementById("v3-save-count").textContent = `(${state.dirty.size})`;
-  btn.disabled = state.dirty.size === 0;
+  const span = document.getElementById("v3-save-count");
+  const n = state.dirty.size;
+  const cdnN    = [...state.dirty.values()].filter(d => d.route === "cdn").length;
+  const assetsN = [...state.dirty.values()].filter(d => d.route === "assets").length;
+
+  let label = "💾 全局保存";
+  if (n > 0) {
+    if (cdnN > 0 && assetsN === 0)      label = `📤 发布 ${cdnN} 到 CDN`;
+    else if (assetsN > 0 && cdnN === 0) label = `💾 应用 ${assetsN} 到工程`;
+    else if (cdnN > 0 && assetsN > 0)   label = `📤 发布 + 应用 (${cdnN}+${assetsN})`;
+  }
+  btn.innerHTML = `${label}<span id="v3-save-count">${n > 0 ? ` (${n})` : ""}</span>`;
+  btn.disabled = n === 0;
 }
 
 function pickFile(cb) {

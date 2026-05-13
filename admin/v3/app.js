@@ -12,16 +12,47 @@ import "./batch.js";
 
 document.getElementById("v3-save-btn").addEventListener("click", async () => {
   if (state.dirty.size === 0) return;
-  const changes = [];
-  for (const [id, d] of state.dirty.entries()) {
-    changes.push({ id, actionType: "replace_asset", targetAssetPath: d.targetAssetPath, newBytesBase64: d.newBytesBase64 });
-  }
+
+  const btn = document.getElementById("v3-save-btn");
+  btn.disabled = true;
+  const origLabel = btn.innerHTML;
+  btn.textContent = "保存中…";
+
   try {
-    const r = await api.queueChanges(changes);
-    persistDirty();
-    showToast(`Queued ${r.queuedCount} change(s) · 回 Unity 点 Apply Web Changes`);
+    const cdnCount    = [...state.dirty.values()].filter(d => d.route === "cdn").length;
+    const assetsCount = [...state.dirty.values()].filter(d => d.route === "assets").length;
+
+    const r = await fetch("/api/v4/publish", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}"
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || `publish ${r.status}`);
+
+    let msg = "";
+    if (data.cdnPublished) {
+      msg += `✅ 已上架 v${data.cdnNewVersion} · 玩家 30s 内可见 (${cdnCount} 项)`;
+    } else if (cdnCount > 0) {
+      msg += `⚠ CDN ${cdnCount} 项已写入但 publish 跳过 (${data.noChanges ? "无变化" : "未发布"})`;
+    }
+    if (assetsCount > 0) {
+      if (msg) msg += " · ";
+      msg += `💾 ${assetsCount} 项写入工程 (Unity Watch Mode 自动应用 / 否则切 Unity 点 Apply)`;
+    }
+    showToast(msg || "无更改", "info");
+
+    for (const d of state.dirty.values())
+      if (d.previewObjectUrl) URL.revokeObjectURL(d.previewObjectUrl);
+    state.dirty.clear();
+    clearPersistedDirty();
+    window.__v3_updateSaveBtn?.();
+    await refresh();
   } catch (e) {
-    showToast("Save failed: " + e.message, "error");
+    showToast("保存失败: " + e.message, "error");
+  } finally {
+    btn.disabled = state.dirty.size === 0;
+    btn.innerHTML = origLabel;
   }
 });
 
@@ -74,9 +105,9 @@ async function refresh() {
 
 function pickInitialSourceIdx() {
   const sources = state.snapshot?.sources ?? [];
-  // Prefer source with at least one replaceable element
+  // Prefer source with at least one non-locked element
   for (let i = 0; i < sources.length; i++)
-    if (sources[i].elements.some(e => e.isReplaceable)) return i;
+    if (sources[i].elements.some(e => e.resourceState && e.resourceState !== "builtin_placeholder")) return i;
   // Otherwise first source with any elements
   for (let i = 0; i < sources.length; i++)
     if (sources[i].elements.length > 0) return i;
