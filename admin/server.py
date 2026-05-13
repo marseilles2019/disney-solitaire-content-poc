@@ -138,6 +138,59 @@ def bump_manifest_version(manifest_path: Path) -> str:
 
 
 # ────────────────────────────────────────────────────────────────────────────
+# v4: Resource state enrichment
+
+def enrich_element_state(element: dict, content_map: dict, public_root: Path, manifest_version: str) -> dict:
+    """Compute resourceState + cdn/static asset details for one element.
+
+    Returns a dict with keys: resourceState, cdnAssetPath?, cdnAssetExists?,
+    cdnAssetVersion?, staticAssetPath?, staticAssetExists?, warnings?
+    """
+    tag = (element.get("contentTagKey") or "").strip()
+    raw_path = element.get("currentAssetPath") or ""
+    out: dict = {}
+
+    # Resolve CDN side
+    cdn_rel = None
+    if tag:
+        cdn_rel = (content_map.get("sprites", {}) or {}).get(tag)
+        if not cdn_rel:
+            # Tag set but not in content_map → derive by convention
+            cdn_rel = f"assets/{tag}.png"
+        out["cdnAssetPath"] = cdn_rel
+        cdn_full = (public_root / cdn_rel).resolve()
+        out["cdnAssetExists"] = cdn_full.exists() and cdn_full.is_file()
+        out["cdnAssetVersion"] = manifest_version
+
+    # Resolve Assets side
+    is_static_png = (
+        raw_path.startswith("Assets/")
+        and raw_path.lower().endswith((".png", ".jpg", ".jpeg"))
+    )
+    if is_static_png:
+        out["staticAssetPath"] = raw_path
+        # Note: Assets/ lives in Unity project (cross-repo). We can't always stat it
+        # from this server. Trust the Exporter: if Unity wrote this path into snapshot,
+        # the file exists at export time.
+        out["staticAssetExists"] = True
+
+    # State machine
+    if tag and is_static_png:
+        out["resourceState"] = "dual"
+        out["warnings"] = [
+            "该元素既被 ContentTag 接管又有静态 Assets/Art/ PNG · 运行时 ContentTag 优先 · 建议保持单一来源"
+        ]
+    elif tag:
+        out["resourceState"] = "cdn_managed" if out["cdnAssetExists"] else "tagged_unpublished"
+    elif is_static_png:
+        out["resourceState"] = "static_only"
+    else:
+        out["resourceState"] = "builtin_placeholder"
+
+    return out
+
+
+# ────────────────────────────────────────────────────────────────────────────
 # HTTP handler
 
 class AdminHandler(BaseHTTPRequestHandler):
