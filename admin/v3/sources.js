@@ -80,8 +80,13 @@ export function renderSources() {
     </div>`;
   }).join("");
 
-  // ── ▼ 组件 (prefabs) — all prefabs, including modals for direct edit access ──
-  const prefabs = sources.map((s, i) => ({ s, i })).filter(({ s }) => s.type === "prefab");
+  // ── ▼ 组件 (prefabs) — exclude modals/overlays (already accessible via
+  //    ▼ 状态 preset rows). Leaves the truly reusable atoms: cards, pills,
+  //    badges, buttons, strips. ──
+  const OVERLAY_NAME_RE = /modal|overlay|popup|toast|dialog/i;
+  const prefabs = sources
+    .map((s, i) => ({ s, i }))
+    .filter(({ s }) => s.type === "prefab" && !OVERLAY_NAME_RE.test(s.displayName));
   const prefabRows = prefabs.map(({ s, i }) => {
     const c = counts(s);
     const active = (i === state.selectedSourceIdx && state.overlaySourceIdx == null && !activePreset) ? " active" : "";
