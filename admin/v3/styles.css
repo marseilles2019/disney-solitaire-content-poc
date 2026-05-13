@@ -105,17 +105,24 @@ body { overflow: hidden; }
 
 /* ── Layout pane (T6) — Canvas viewport ──────────────────────────── */
 
-.canvas-area { flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px; overflow: auto; }
-.canvas-frame-wrap { width: 100%; max-width: 320px; }
+.canvas-area { flex: 1; display: flex; align-items: center; justify-content: center; padding: 16px; overflow: auto; min-height: 0; }
+/* Larger phone-frame so tiny chips (~16px source) get a usable ~30+px hit area.
+   Bounded by max-height so 9:16 ratio doesn't push the frame off-screen vertically. */
+.canvas-frame-wrap { width: 100%; max-width: 480px; max-height: 100%; aspect-ratio: 9/16; margin: 0 auto; }
 .canvas-frame { width: 100%; height: 100%; background: linear-gradient(135deg, #FEF0E0, #F8DDB9); border: 1px solid var(--border-strong); border-radius: 24px; position: relative; overflow: hidden; box-shadow: 0 16px 48px rgba(0,0,0,0.45); }
 .canvas-info { padding: 8px 16px 12px; font-size: 10px; color: var(--text-dim); text-align: center; border-top: 1px solid var(--border); }
 
 .el { position: absolute; border: 1.5px solid transparent; border-radius: 5px; cursor: pointer; transition: transform 0.1s; }
 .el:hover { transform: scale(1.04); z-index: 5; }
-/* Selected: visual highlight only — no z-index, so DOM order rules. Otherwise
-   a large auto-selected element (e.g. ThemeBackdrop covers full canvas) would
-   eat clicks on smaller elements (chips) layered above it in DOM order. */
-.el.selected { border-color: var(--purple); border-style: dashed; box-shadow: 0 0 0 3px color-mix(in srgb, var(--purple) 30%, transparent); }
+/* Selected: stronger visual highlight (border+shadow+outline). NO z-index
+   so DOM order rules — otherwise a large auto-selected element (e.g.
+   ThemeBackdrop covers full canvas) eats clicks on chips layered above. */
+.el.selected {
+  border: 2px solid var(--purple);
+  border-style: solid;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--purple) 45%, transparent),
+              0 0 12px color-mix(in srgb, var(--purple) 60%, transparent);
+}
 .el.dirty { box-shadow: 0 0 0 3px color-mix(in srgb, var(--amber) 35%, transparent); border-color: var(--amber); border-style: dashed; }
 .el-replaceable { background: #f97316; }
 .el-tagged { background: #d8c3a0; }
