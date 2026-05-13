@@ -267,6 +267,11 @@ class AdminHandler(BaseHTTPRequestHandler):
             return self.serve_status()
         if path == "/api/v2/snapshot":
             return self.serve_v2_snapshot()
+        # v6.4: prefab-root thumbnails — must precede the broader /api/v2/thumb prefix below
+        if path.startswith("/api/v2/thumbnail/"):
+            return self.serve_v2_thumbnail()
+        if path == "/api/v2/thumbnails-manifest":
+            return self.serve_v2_thumbnails_manifest()
         if path.startswith("/api/v2/thumb"):
             return self.serve_v2_thumb()
         if path.startswith("/api/v2/asset"):
@@ -499,6 +504,32 @@ class AdminHandler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(data)
+
+    def serve_v2_thumbnail(self):
+        # Prefab-root-level thumbnail; content-addressed, immutable cache.
+        name = self.path[len("/api/v2/thumbnail/"):].split("?", 1)[0]
+        if not re.fullmatch(r"[a-f0-9]{16}\.png", name):
+            return self.send_error_json(400, "invalid filename", "invalid_name")
+        full = self.data_root / "thumbnails" / name
+        if not full.exists():
+            return self.send_error(404, "Not found")
+        data = full.read_bytes()
+        self.send_response(200)
+        self.send_header("Content-Type", "image/png")
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "public, max-age=31536000, immutable")
+        self.send_header("ETag", f'"{name}"')
+        self.end_headers()
+        self.wfile.write(data)
+
+    def serve_v2_thumbnails_manifest(self):
+        p = self.data_root / "thumbnails.json"
+        if not p.exists():
+            return self.send_json(200, {"thumbnails": {}})
+        try:
+            return self.send_json(200, json.loads(p.read_text()))
+        except json.JSONDecodeError as e:
+            return self.send_error_json(500, f"thumbnails.json invalid: {e}", "invalid_json")
 
     def serve_v2_asset(self):
         # Serve any PNG/JPG under <unityProjectRoot>/Assets/ — used as live preview
