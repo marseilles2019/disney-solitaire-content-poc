@@ -112,7 +112,10 @@ body { overflow: hidden; }
 
 .el { position: absolute; border: 1.5px solid transparent; border-radius: 5px; cursor: pointer; transition: transform 0.1s; }
 .el:hover { transform: scale(1.04); z-index: 5; }
-.el.selected { border-color: var(--purple); border-style: dashed; box-shadow: 0 0 0 3px color-mix(in srgb, var(--purple) 30%, transparent); z-index: 6; }
+/* Selected: visual highlight only — no z-index, so DOM order rules. Otherwise
+   a large auto-selected element (e.g. ThemeBackdrop covers full canvas) would
+   eat clicks on smaller elements (chips) layered above it in DOM order. */
+.el.selected { border-color: var(--purple); border-style: dashed; box-shadow: 0 0 0 3px color-mix(in srgb, var(--purple) 30%, transparent); }
 .el.dirty { box-shadow: 0 0 0 3px color-mix(in srgb, var(--amber) 35%, transparent); border-color: var(--amber); border-style: dashed; }
 .el-replaceable { background: #f97316; }
 .el-tagged { background: #d8c3a0; }
