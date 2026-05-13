@@ -93,9 +93,10 @@ export function renderSources() {
   const activePreset = findActivePreset(state.snapshot, state.selectedSourceIdx, state.overlaySourceIdx);
 
   // ── ▼ 状态 (states) — preset-driven nav, replaces former "Scenes" section ──
-  const availablePresets = STATE_PRESETS
+  const allPresets = STATE_PRESETS();
+  const availablePresets = allPresets
     .map(p => ({ p, r: resolvePreset(p, state.snapshot) }))
-    .filter(({ p, r }) => r.sourceIdx >= 0 && (p.overlayRe == null || r.overlayIdx >= 0));
+    .filter(({ p, r }) => r.sourceIdx >= 0 && (p.overlayPrefabPath == null || r.overlayIdx >= 0));
 
   const presetRows = availablePresets.map(({ p, r }) => {
     const c = combinedCounts(r.sourceIdx, r.overlayIdx);
@@ -157,7 +158,7 @@ export function renderSources() {
   // ── click handlers — preset rows apply scene+overlay combo; idx rows = raw source ──
   root.querySelectorAll("[data-preset]").forEach(el => {
     el.addEventListener("click", () => {
-      const p = STATE_PRESETS.find(x => x.id === el.dataset.preset);
+      const p = allPresets.find(x => x.id === el.dataset.preset);
       if (!p) return;
       const r = resolvePreset(p, state.snapshot);
       state.selectedSourceIdx = r.sourceIdx;

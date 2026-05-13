@@ -1,5 +1,4 @@
 import { state, selectedSource, overlaySource, isDirty, stateBadge } from "./state.js";
-import { STATE_PRESETS, resolvePreset, findActivePreset } from "./state-presets.js";
 
 // Detect modal/overlay/popup prefabs by name heuristic — these are
 // candidates for "render on top of current scene".
