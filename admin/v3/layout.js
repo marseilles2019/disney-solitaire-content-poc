@@ -82,7 +82,11 @@ export function renderLayout() {
   for (const e of src.elements) {
     if (!e.rect) continue;
     const div = document.createElement("div");
-    div.className = `el ${elKind(e)}${e.id === state.selectedElementId ? ' selected' : ''}${isDirty(e.id) ? ' dirty' : ''}`;
+    // When an overlay is active, scene elements belong to "other states"
+    // (shared backdrop) — visually muted and made non-interactive so the
+    // user focuses on the overlay's editable elements.
+    const ctxMuted = ov ? " el-context-muted" : "";
+    div.className = `el ${elKind(e)}${e.id === state.selectedElementId ? ' selected' : ''}${isDirty(e.id) ? ' dirty' : ''}${ctxMuted}`;
     div.dataset.id = e.id;
     const friendlyName = (e.gameObjectPath || "").split("/").pop() || e.id;
     const badge = stateBadge(e);

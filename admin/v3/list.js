@@ -9,40 +9,36 @@ export function renderList() {
   const src = selectedSource();
   if (!src) { root.innerHTML = ""; return; }
   const ov = overlaySource();
-  // When overlay is active, show overlay elements (top section, primary focus)
-  // and main scene elements (bottom section, secondary context). When no
-  // overlay, the main scene is the only section.
-  const overlayBlock = ov ? `
-    <div class="list-section list-section-overlay">
-      <div class="list-section-header">
-        <span class="list-section-icon">🟣</span>
-        <span class="list-section-title">弹窗 · ${escape(ov.displayName.replace(/\.uGUI$/, ''))}</span>
-        <span class="list-section-count">${ov.elements.length}</span>
-      </div>
-      ${ov.elements.map((e) => renderRow(e, "overlay")).join("")}
-    </div>` : "";
-  const mainBlock = `
-    <div class="list-section list-section-main">
-      <div class="list-section-header">
-        <span class="list-section-icon">🎬</span>
-        <span class="list-section-title">场景 · ${escape(src.displayName)}</span>
-        <span class="list-section-count">${src.elements.length}</span>
-      </div>
-      ${src.elements.map((e) => renderRow(e, "main")).join("")}
-    </div>`;
+  // State-focus rule: when an overlay is active, the state's "own" content is
+  // the overlay's elements (the modal that defines this state). The scene
+  // behind is shared across multiple states — not editable in this state's
+  // context. List shows ONLY overlay elements. Without overlay, list shows
+  // the scene elements (the state IS the scene).
+  const focusSource = ov || src;
+  const focusScope = ov ? "overlay" : "main";
+  const focusLabel = ov
+    ? `弹窗 · ${escape(ov.displayName.replace(/\.uGUI$/, ''))}`
+    : `场景 · ${escape(src.displayName)}`;
+  const focusIcon = ov ? "🟣" : "🎬";
 
   root.innerHTML = `
     <div class="pane-header">
       <div class="pane-header-title">≡ List</div>
-      <div class="pane-header-subtitle">${ov ? `${ov.elements.length} 弹窗 + ${src.elements.length} 场景` : `${src.elements.length} 个元素`}</div>
+      <div class="pane-header-subtitle">${focusSource.elements.length} 个元素</div>
     </div>
     <div class="list-dropzone-hint" id="v3-list-dropzone">
       📁 <b>Drop a folder here</b> for batch replace
       <div style="font-size:10px;color:var(--text-dim);">matches: filename → subpath → ContentTag</div>
     </div>
     <div class="list-rows" id="v3-list-rows">
-      ${overlayBlock}
-      ${mainBlock}
+      <div class="list-section list-section-${focusScope}">
+        <div class="list-section-header">
+          <span class="list-section-icon">${focusIcon}</span>
+          <span class="list-section-title">${focusLabel}</span>
+          <span class="list-section-count">${focusSource.elements.length}</span>
+        </div>
+        ${focusSource.elements.map((e) => renderRow(e, focusScope)).join("")}
+      </div>
     </div>`;
   root.querySelectorAll(".list-row").forEach(row => {
     row.addEventListener("click", () => {

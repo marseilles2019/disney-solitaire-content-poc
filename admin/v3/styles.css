@@ -701,6 +701,14 @@ body { overflow: hidden; }
   z-index: 1;  /* above default-0 main scene elements */
 }
 
+/* Scene elements when an overlay is active = visual context only.
+   Muted + not interactive so user focuses on the overlay's editables. */
+.el-context-muted {
+  opacity: 0.5;
+  pointer-events: none !important;
+  filter: saturate(0.6);
+}
+
 /* Overlay elements sit above backdrop (z:1) with a stronger visual to read
    as "modal not scene". Purple 2px outline + soft shadow makes them pop. */
 .el-overlay {
