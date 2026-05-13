@@ -266,6 +266,10 @@ class AdminHandler(BaseHTTPRequestHandler):
             return self.serve_v2_last_applied()
         if path == "/api/v2/watch-state":
             return self.serve_v2_watch_state()
+        if path == "/api/v2/manifest":
+            return self.serve_v2_manifest()
+        if path == "/api/v2/prefab-usage":
+            return self.serve_v2_prefab_usage()
         self.send_error(404, "API not found")
 
     def serve_manifest(self):
@@ -544,6 +548,41 @@ class AdminHandler(BaseHTTPRequestHandler):
         except json.JSONDecodeError:
             return self.send_json(200, {"watchMode": False})
         return self.send_json(200, data)
+
+    def serve_v2_manifest(self):
+        """Project config from WebAdminConfig.asset (via ContentManifestExporter).
+        Returns graceful empty fallback if no manifest yet (e.g., dev hasn't created
+        a WebAdminConfig.asset)."""
+        p = self.data_root / "manifest.json"
+        if not p.exists():
+            return self.send_json(200, {
+                "projectName": "(no WebAdminConfig)",
+                "projectIcon": "🎮",
+                "worlds": [],
+                "states": [],
+                "components": [],
+                "conventions": {
+                    "writePathPrefix": V2_TARGET_PATH_PREFIX,
+                    "modalRegex": "modal|overlay|popup|toast|dialog",
+                    "cdnEnabled": True,
+                    "cdnTargetPrefix": "assets/",
+                },
+            })
+        try:
+            return self.send_json(200, json.loads(p.read_text()))
+        except json.JSONDecodeError as e:
+            return self.send_error_json(500, f"manifest.json invalid: {e}", "invalid_json")
+
+    def serve_v2_prefab_usage(self):
+        """Prefab→scene usage map written by ContentSnapshotExporter. Empty fallback
+        so frontend gracefully handles project where scan wasn't run yet."""
+        p = self.data_root / "prefab-usage.json"
+        if not p.exists():
+            return self.send_json(200, {})
+        try:
+            return self.send_json(200, json.loads(p.read_text()))
+        except json.JSONDecodeError:
+            return self.send_json(200, {})
 
     def handle_v2_queue_changes(self):
         body = self.read_json_body()
