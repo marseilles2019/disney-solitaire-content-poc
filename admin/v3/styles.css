@@ -646,19 +646,17 @@ body { overflow: hidden; }
 .v3-legend-swatch-dual   { background: #f43f5e; }
 .v3-legend-swatch-locked { background: rgba(255,255,255,0.06); }
 
-/* Overlay picker + overlay rendering on canvas */
-.v3-overlay-picker {
+/* State preset picker — dropdown for whole-state combos (scene + overlay) */
+.v3-state-picker {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
-  background: rgba(255,255,255,0.02);
-  border-bottom: 1px solid var(--border);
+  padding: 8px 16px 4px;
   font-size: 11px;
   color: var(--text-muted);
 }
-.v3-overlay-picker label { color: var(--text-dim); }
-.v3-overlay-picker select {
+.v3-state-picker label { color: var(--text-dim); }
+.v3-state-picker select {
   flex: 1;
   background: var(--surface);
   color: var(--text);
@@ -669,18 +667,98 @@ body { overflow: hidden; }
   font-family: inherit;
   cursor: pointer;
 }
-.v3-overlay-picker select:focus { outline: 1px solid var(--purple); }
+.v3-state-picker select:focus { outline: 1px solid var(--purple); }
+.v3-state-hint { font-size: 10px; color: var(--text-dim); font-style: italic; }
+
+/* Overlay picker — clickable chips for each modal/overlay candidate */
+.v3-overlay-picker {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 4px 16px 10px;
+  background: rgba(255,255,255,0.02);
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.v3-overlay-picker label {
+  color: var(--text-dim);
+  padding-top: 4px;
+  flex-shrink: 0;
+}
+.v3-overlay-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  flex: 1;
+}
+.v3-overlay-chip {
+  background: var(--surface);
+  color: var(--text-muted);
+  border: 1px solid var(--border-strong);
+  padding: 3px 9px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+}
+.v3-overlay-chip:hover {
+  color: var(--text);
+  border-color: var(--purple);
+}
+.v3-overlay-chip.active {
+  background: color-mix(in srgb, var(--purple) 22%, transparent);
+  color: var(--purple);
+  border-color: var(--purple);
+  font-weight: 700;
+}
 .v3-overlay-picker button#v3-overlay-close {
   background: transparent;
   border: 1px solid var(--border-strong);
   color: var(--text-muted);
-  width: 26px;
-  height: 26px;
+  width: 22px;
+  height: 22px;
   border-radius: 5px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 11px;
+  flex-shrink: 0;
 }
 .v3-overlay-picker button#v3-overlay-close:hover { color: var(--rose); border-color: var(--rose); }
+
+/* List sections — separate "弹窗" + "场景" groups when overlay active */
+.list-section { margin-bottom: 10px; }
+.list-section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px 6px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.list-section-icon { font-size: 11px; }
+.list-section-title {
+  flex: 1;
+  color: var(--text);
+  font-weight: 700;
+}
+.list-section-count {
+  background: var(--surface);
+  color: var(--text-muted);
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+}
+.list-section-overlay .list-section-header {
+  color: var(--purple);
+  background: color-mix(in srgb, var(--purple) 6%, transparent);
+}
+.list-row-overlay {
+  border-left: 2px solid color-mix(in srgb, var(--purple) 50%, transparent);
+}
 
 .v3-overlay-on {
   font-size: 11px;
