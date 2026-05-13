@@ -12,6 +12,7 @@ Env vars:
 from __future__ import annotations
 
 import base64
+import fcntl
 import json
 import os
 import re
@@ -72,6 +73,50 @@ def safe_asset_path(repo_root: Path, target: str) -> Path:
     if ext not in ALLOWED_EXTENSIONS:
         raise ValueError("invalid_extension")
     return full
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# Pending-changes helpers
+
+
+def upsert_pending_change(doc, change):
+    """Replace any existing change matching (id, actionType); else append.
+
+    Mutates `doc` in place. Returns the same doc for convenience.
+    """
+    el_id = change.get("id")
+    a_type = change.get("actionType")
+    doc["changes"] = [
+        c for c in doc.get("changes", [])
+        if not (c.get("id") == el_id and c.get("actionType") == a_type)
+    ]
+    doc["changes"].append(change)
+    return doc
+
+
+def with_pending_changes_lock(pending_path, mutate_fn):
+    """Atomic read-mutate-write of pending-changes.json under fcntl.flock.
+
+    `mutate_fn(doc)` is called with the parsed dict and must return the dict
+    to write. Creates the file (with empty changes list) if missing.
+    """
+    pending_path.parent.mkdir(parents=True, exist_ok=True)
+    # Open for read+write, create if missing. Lock for the entire operation.
+    with open(pending_path, "a+") as fh:
+        fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
+        try:
+            fh.seek(0)
+            raw = fh.read()
+            try:
+                doc = json.loads(raw) if raw.strip() else {"changes": []}
+            except json.JSONDecodeError:
+                doc = {"changes": []}
+            doc = mutate_fn(doc)
+            fh.seek(0)
+            fh.truncate()
+            fh.write(json.dumps(doc, indent=2) + "\n")
+        finally:
+            fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
 
 
 # ────────────────────────────────────────────────────────────────────────────
@@ -857,20 +902,13 @@ class AdminHandler(BaseHTTPRequestHandler):
                 return self.send_error_json(400, "directory traversal forbidden", "invalid_target")
             # Append to pending-changes.json (Unity will apply later via watch mode or manual menu)
             pending_path = self.data_root / "pending-changes.json"
-            pending_path.parent.mkdir(parents=True, exist_ok=True)
-            try:
-                doc = json.loads(pending_path.read_text()) if pending_path.exists() else {"changes": []}
-            except json.JSONDecodeError:
-                doc = {"changes": []}
-            # Replace existing entry with same id if any
-            doc["changes"] = [c for c in doc.get("changes", []) if c.get("id") != element_id]
-            doc["changes"].append({
+            change = {
                 "id": element_id,
                 "actionType": "replace_asset",
                 "targetAssetPath": static_path,
                 "newBytesBase64": bytes_b64,
-            })
-            pending_path.write_text(json.dumps(doc, indent=2) + "\n")
+            }
+            with_pending_changes_lock(pending_path, lambda doc: upsert_pending_change(doc, change))
             return self.send_json(200, {"ok": True, "route": "assets", "targetPath": static_path, "sizeBytes": len(decoded)})
 
         return self.send_error_json(500, f"unhandled route {route!r}", "internal")
