@@ -1,0 +1,61 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>layout-edit pure helpers</title>
+<style>
+  body { font: 13px monospace; background: #111; color: #eee; padding: 12px; }
+  .pass { color: #6f6; } .fail { color: #f66; } pre { white-space: pre-wrap; }
+</style></head><body>
+<h1>layout-edit.js pure helpers</h1>
+<div id="results"></div>
+<script type="module">
+import { pxToSizeDelta, computeNativeRatioHeight } from "./layout-edit.js";
+
+const r = document.getElementById("results");
+async function check(name, fn) {
+  try { await fn(); r.insertAdjacentHTML("beforeend", `<div class="pass">✓ ${name}</div>`); }
+  catch (e) { r.insertAdjacentHTML("beforeend", `<div class="fail">✗ ${name}<pre>${e.stack || e}</pre></div>`); }
+}
+function near(a, b, eps = 0.0001) { if (Math.abs(a - b) > eps) throw new Error(`${a} != ${b}`); }
+
+await check("pxToSizeDelta singlePointAnchor divides by canvasScale", () => {
+  const rect = { anchorMinX: 0.5, anchorMaxX: 0.5, anchorMinY: 0.5, anchorMaxY: 0.5 };
+  const out = pxToSizeDelta(rect, { width: 1080, height: 1920 }, { width: 240, height: 240 }, 1.0);
+  near(out.width, 240);
+  near(out.height, 240);
+});
+
+await check("pxToSizeDelta scales by canvasScale", () => {
+  const rect = { anchorMinX: 0.5, anchorMaxX: 0.5, anchorMinY: 0.5, anchorMaxY: 0.5 };
+  const out = pxToSizeDelta(rect, { width: 1080, height: 1920 }, { width: 240, height: 240 }, 0.5);
+  near(out.width, 480);
+  near(out.height, 480);
+});
+
+await check("pxToSizeDelta horizontalStretchAnchor subtractsAnchorRegion", () => {
+  const rect = { anchorMinX: 0, anchorMaxX: 1, anchorMinY: 0.5, anchorMaxY: 0.5 };
+  // parent width 1080, anchorRegion = 1080 * (1-0) = 1080
+  const out = pxToSizeDelta(rect, { width: 1080, height: 1920 }, { width: 1200, height: 240 }, 1.0);
+  near(out.width, 1200 - 1080);
+  near(out.height, 240);
+});
+
+await check("pxToSizeDelta verticalStretchAnchor subtractsAnchorRegion", () => {
+  const rect = { anchorMinX: 0.5, anchorMaxX: 0.5, anchorMinY: 0, anchorMaxY: 1 };
+  const out = pxToSizeDelta(rect, { width: 1080, height: 1920 }, { width: 240, height: 2000 }, 1.0);
+  near(out.width, 240);
+  near(out.height, 2000 - 1920);
+});
+
+await check("computeNativeRatioHeight keepsWidthRecomputesHeight", () => {
+  // Sprite 200x100 → ratio 0.5; current width 400 → height = 200
+  const h = computeNativeRatioHeight(400, { pixelWidth: 200, pixelHeight: 100 });
+  near(h, 200);
+});
+
+await check("computeNativeRatioHeight returnsNull whenNoSprite", () => {
+  if (computeNativeRatioHeight(400, null) !== null) throw new Error("expected null");
+});
+
+await check("computeNativeRatioHeight returnsNull whenSpriteWidthZero", () => {
+  if (computeNativeRatioHeight(400, { pixelWidth: 0, pixelHeight: 100 }) !== null) throw new Error("expected null");
+});
+</script></body></html>
