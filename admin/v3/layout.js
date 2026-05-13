@@ -1,4 +1,11 @@
-import { state, selectedSource, isDirty, stateBadge } from "./state.js";
+import { state, selectedSource, overlaySource, isDirty, stateBadge } from "./state.js";
+
+// Detect modal/overlay/popup prefabs by name heuristic — these are
+// candidates for "render on top of current scene".
+const OVERLAY_NAME_RE = /modal|overlay|popup|toast|dialog/i;
+function isOverlayCandidate(src) {
+  return src.type === "prefab" && OVERLAY_NAME_RE.test(src.displayName);
+}
 
 function escape(s) {
   return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -45,12 +52,30 @@ export function renderLayout() {
       <span class="v3-legend-hint">点击元素查看详情</span>
     </div>`;
 
+  // Overlay picker: list all modal/overlay prefabs available to stack on top
+  const overlayCandidates = sources
+    .map((s, i) => ({ s, i }))
+    .filter(({ s }) => isOverlayCandidate(s));
+  const ov = overlaySource();
+  const overlayPicker = `
+    <div class="v3-overlay-picker">
+      <label>叠加弹窗：</label>
+      <select id="v3-overlay-select">
+        <option value="">— 无（仅显示场景）—</option>
+        ${overlayCandidates.map(({ s, i }) =>
+          `<option value="${i}"${i === state.overlaySourceIdx ? " selected" : ""}>${escape(s.displayName)} (${s.elements.length})</option>`
+        ).join("")}
+      </select>
+      ${ov ? `<button id="v3-overlay-close" title="关闭弹窗">✕</button>` : ""}
+    </div>`;
+
   root.innerHTML = `
     <div class="pane-header">
       <div class="pane-header-title">▣ 布局</div>
-      <div class="pane-header-subtitle">${escape(src.displayName)}</div>
-      <div class="pane-header-meta">${src.elements.length} 个元素 · ${srcReplaceable} 可替换</div>
+      <div class="pane-header-subtitle">${escape(src.displayName)}${ov ? ` <span class="v3-overlay-on">+ ${escape(ov.displayName)}</span>` : ""}</div>
+      <div class="pane-header-meta">${src.elements.length} 个元素 · ${srcReplaceable} 可替换${ov ? ` · 叠 ${ov.elements.length} 元素` : ""}</div>
     </div>
+    ${overlayPicker}
     ${emptyStateBanner}
     ${legend}
     <div class="canvas-area">
@@ -62,6 +87,18 @@ export function renderLayout() {
       <summary>技术信息</summary>
       <div class="mono">${escape(canvas.renderMode)} · 参考分辨率 ${refW}×${refH}</div>
     </details>`;
+
+  // Wire overlay picker
+  const sel = document.getElementById("v3-overlay-select");
+  sel?.addEventListener("change", (ev) => {
+    const v = ev.target.value;
+    state.overlaySourceIdx = v === "" ? null : parseInt(v, 10);
+    window.__v3_renderAll();
+  });
+  document.getElementById("v3-overlay-close")?.addEventListener("click", () => {
+    state.overlaySourceIdx = null;
+    window.__v3_renderAll();
+  });
 
   const frame = document.getElementById("v3-canvas-frame");
 
@@ -89,6 +126,57 @@ export function renderLayout() {
       window.__v3_renderAll();
     });
     frame.appendChild(div);
+  }
+
+  // ── Overlay rendering — render a popup/modal source on top of main scene
+  if (ov) {
+    // Semi-transparent backdrop dimming the scene
+    const backdrop = document.createElement("div");
+    backdrop.className = "v3-overlay-backdrop";
+    backdrop.title = "弹窗背景（点击空白处可关闭弹窗）";
+    backdrop.addEventListener("click", (ev) => {
+      // only close if user clicked the backdrop itself, not a modal element above
+      if (ev.target === backdrop) {
+        state.overlaySourceIdx = null;
+        window.__v3_renderAll();
+      }
+    });
+    frame.appendChild(backdrop);
+
+    // Modal prefabs typically have no own Canvas; world coords are around (0,0).
+    // Position elements at canvas-center offset so modal renders centered on top.
+    const ovCenterX = refW / 2;
+    const ovCenterY = refH / 2;
+    for (const e of ov.elements) {
+      if (!e.rect) continue;
+      // Skip the full-bleed Overlay child (worldWidth/Height = 0 means it's a
+      // stretching anchor without parent context — would render as 0×0).
+      const isStretchHelper = e.rect.worldWidth === 0 && e.rect.worldHeight === 0;
+      if (isStretchHelper) continue;
+      const div = document.createElement("div");
+      div.className = `el el-overlay ${elKind(e)}${e.id === state.selectedElementId ? ' selected' : ''}${isDirty(e.id) ? ' dirty' : ''}`;
+      div.dataset.id = e.id;
+      const friendlyName = (e.gameObjectPath || "").split("/").pop() || e.id;
+      const badge = stateBadge(e);
+      div.title = `[${escape(ov.displayName)}] ${friendlyName} · ${badge.icon} ${badge.label}`;
+
+      // Offset modal world coords by canvas center
+      const absX = ovCenterX + e.rect.worldX;
+      const absY = ovCenterY + e.rect.worldY;
+      const leftPct = ((absX - e.rect.worldWidth / 2) / refW) * 100;
+      const topPct  = ((refH - absY - e.rect.worldHeight / 2) / refH) * 100;
+      const wPct = (e.rect.worldWidth / refW) * 100;
+      const hPct = (e.rect.worldHeight / refH) * 100;
+      div.style.cssText = `left:${leftPct}%; top:${topPct}%; width:${wPct}%; height:${hPct}%;`;
+      if (isDirty(e.id) && state.dirty.get(e.id).previewObjectUrl) {
+        div.style.background = `center/cover no-repeat url('${state.dirty.get(e.id).previewObjectUrl}')`;
+      }
+      div.addEventListener("click", () => {
+        state.selectedElementId = e.id;
+        window.__v3_renderAll();
+      });
+      frame.appendChild(div);
+    }
   }
 }
 

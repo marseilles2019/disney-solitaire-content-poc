@@ -645,3 +645,73 @@ body { overflow: hidden; }
 .v3-legend-swatch-static { background: #2563eb; }
 .v3-legend-swatch-dual   { background: #f43f5e; }
 .v3-legend-swatch-locked { background: rgba(255,255,255,0.06); }
+
+/* Overlay picker + overlay rendering on canvas */
+.v3-overlay-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(255,255,255,0.02);
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.v3-overlay-picker label { color: var(--text-dim); }
+.v3-overlay-picker select {
+  flex: 1;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.v3-overlay-picker select:focus { outline: 1px solid var(--purple); }
+.v3-overlay-picker button#v3-overlay-close {
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  color: var(--text-muted);
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.v3-overlay-picker button#v3-overlay-close:hover { color: var(--rose); border-color: var(--rose); }
+
+.v3-overlay-on {
+  font-size: 11px;
+  color: var(--purple);
+  font-weight: 500;
+  margin-left: 6px;
+}
+
+/* Backdrop dims the scene below the modal — sits above scene elements but
+   below modal elements (DOM order). pointer-events:auto so clicks land on it
+   when user clicks outside the modal card. */
+.v3-overlay-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(2px);
+  cursor: zoom-out;
+  z-index: 1;  /* above default-0 main scene elements */
+}
+
+/* Overlay elements sit above backdrop (z:1) with a stronger visual to read
+   as "modal not scene". Purple 2px outline + soft shadow makes them pop. */
+.el-overlay {
+  z-index: 2;
+  outline: 2px solid color-mix(in srgb, var(--purple) 60%, transparent);
+  outline-offset: 0;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+  filter: brightness(1.1);
+}
+.el-overlay.selected {
+  outline: 3px solid var(--purple);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--purple) 45%, transparent),
+              0 12px 32px rgba(0,0,0,0.55);
+}

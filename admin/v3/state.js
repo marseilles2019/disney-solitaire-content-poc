@@ -7,16 +7,34 @@ export const state = {
   // dirty: Map<elementId, {targetAssetPath, newBytesBase64, previewObjectUrl, byteSize, filename}>
   dirty: new Map(),
   lastApplied: null,
+  // v4 overlay preview: when set, a second source (modal/popup prefab) renders
+  // on top of selectedSource in the Layout pane, simulating a runtime popup.
+  overlaySourceIdx: null,
 };
+
+export function overlaySource() {
+  if (state.overlaySourceIdx == null) return null;
+  return state.snapshot?.sources?.[state.overlaySourceIdx] ?? null;
+}
 
 export function selectedSource() {
   return state.snapshot?.sources?.[state.selectedSourceIdx] ?? null;
 }
 
 export function selectedElement() {
-  const src = selectedSource();
-  if (!src || !state.selectedElementId) return null;
-  return src.elements.find((e) => e.id === state.selectedElementId) ?? null;
+  if (!state.selectedElementId) return null;
+  // Selection can be in main source OR in active overlay source.
+  const main = selectedSource();
+  if (main) {
+    const hit = main.elements.find((e) => e.id === state.selectedElementId);
+    if (hit) return hit;
+  }
+  const ov = overlaySource();
+  if (ov) {
+    const hit = ov.elements.find((e) => e.id === state.selectedElementId);
+    if (hit) return hit;
+  }
+  return null;
 }
 
 export function isDirty(id) {
